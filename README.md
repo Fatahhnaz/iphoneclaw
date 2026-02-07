@@ -16,7 +16,9 @@ macOS-only Python CLI worker that controls the **iPhone Mirroring / iPhone镜像
 4. Execute actions via Quartz CGEvent (mouse / keyboard)
 5. Record each step to `runs/`
 
-It also exposes a **local Supervisor API** (text-only + SSE) to monitor and intervene with `pause/resume/stop/inject`.
+It also exposes a **local Supervisor API** (text-only + SSE) so external agent frameworks can supervise the run:
+poll the latest conversation (tail N rounds), subscribe to live events, and intervene with `pause/resume/stop/inject`.
+This is designed to plug into orchestrators like **Claude Code** / **Codex** as a “boss agent” supervising a UI worker.
 
 ## Prerequisites
 
