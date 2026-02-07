@@ -34,6 +34,12 @@ Prefer opening apps via:
 - App Library navigation
 - in-app search boxes (once inside the app)
 
+## Home Screen Scrolling
+
+When the worker needs to scroll on the iPhone Home Screen / App Library:
+- do NOT scroll in the middle of the screen
+- scroll/swipe slightly above the bottom navigation bar / dock area
+
 ## Pre-flight (dynamic)
 
 Permission check result:
