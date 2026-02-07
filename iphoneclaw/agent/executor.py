@@ -28,6 +28,9 @@ def _clamp_xy(x: float, y: float, bounds: Rect) -> Tuple[float, float]:
     cy = max(bounds.y + 1.0, min(bounds.y + bounds.height - 2.0, y))
     return (cx, cy)
 
+def _dist(a: Tuple[float, float], b: Tuple[float, float]) -> float:
+    return math.hypot(a[0] - b[0], a[1] - b[1])
+
 
 def execute_action(
     cfg: Config,
@@ -89,22 +92,34 @@ def execute_action(
         return out
 
     try:
+        # macOS has one shared cursor; best-effort restore so users can keep using their Mac.
+        pre_cursor: Optional[Tuple[float, float]] = None
+        expected_cursor: Optional[Tuple[float, float]] = None
+        if cfg.restore_cursor:
+            try:
+                pre_cursor = input_mouse.mouse_position()
+            except Exception:
+                pre_cursor = None
+
         if action_type == "click":
             xy = _box_to_xy(ai.start_box, bounds, factor)
             if not xy:
                 raise ValueError("missing start_box")
+            expected_cursor = (xy[0], xy[1])
             input_mouse.mouse_click(xy[0], xy[1], button="left")
 
         elif action_type == "left_double":
             xy = _box_to_xy(ai.start_box, bounds, factor)
             if not xy:
                 raise ValueError("missing start_box")
+            expected_cursor = (xy[0], xy[1])
             input_mouse.mouse_double_click(xy[0], xy[1])
 
         elif action_type == "right_single":
             xy = _box_to_xy(ai.start_box, bounds, factor)
             if not xy:
                 raise ValueError("missing start_box")
+            expected_cursor = (xy[0], xy[1])
             input_mouse.mouse_right_click(xy[0], xy[1])
 
         elif action_type == "drag":
@@ -112,6 +127,7 @@ def execute_action(
             exy = _box_to_xy(ai.end_box, bounds, factor)
             if not sxy or not exy:
                 raise ValueError("missing start_box/end_box")
+            expected_cursor = (exy[0], exy[1])
             # Heuristic: long-distance drags on iPhone are usually swipe gestures (page/back),
             # where we must avoid a long-press that can start icon drag/rearrange.
             dist = math.hypot(exy[0] - sxy[0], exy[1] - sxy[1])
@@ -142,6 +158,7 @@ def execute_action(
                 xy = (bounds.x + bounds.width / 2.0, bounds.y + bounds.height / 2.0)
             direction = (ai.direction or "").lower().strip()
             xy = _clamp_xy(xy[0], xy[1], bounds)
+            expected_cursor = (xy[0], xy[1])
 
             if cfg.scroll_mode == "drag":
                 # iOS-style scroll: use a short swipe gesture inside the window.
@@ -160,6 +177,7 @@ def execute_action(
                 else:
                     raise ValueError("missing/invalid direction")
                 ex, ey = _clamp_xy(ex, ey, bounds)
+                expected_cursor = (ex, ey)
                 input_mouse.mouse_drag(
                     sx, sy, ex, ey, duration=0.16, hold_before_move_s=0.004
                 )
@@ -222,6 +240,16 @@ def execute_action(
     except Exception as e:
         out["ok"] = False
         out["error"] = str(e)
+    finally:
+        if cfg.restore_cursor and pre_cursor and expected_cursor:
+            try:
+                cur = input_mouse.mouse_position()
+                # If the user moved the cursor away while we were executing, don't fight them.
+                # Only restore when the cursor is still near where we expect our action left it.
+                if _dist(cur, expected_cursor) <= 80.0:
+                    input_mouse.mouse_move(pre_cursor[0], pre_cursor[1])
+            except Exception:
+                pass
 
     out["dt"] = time.time() - t0
     return out

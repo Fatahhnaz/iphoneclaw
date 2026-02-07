@@ -10,6 +10,16 @@ import Quartz
 def _post(event) -> None:
     Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
 
+def mouse_position() -> tuple[float, float]:
+    """
+    Current global mouse cursor position.
+
+    Note: macOS has a single system cursor; all CGEvent mouse injection will move it.
+    """
+    evt = Quartz.CGEventCreate(None)
+    pt = Quartz.CGEventGetLocation(evt)
+    return float(pt.x), float(pt.y)
+
 
 def mouse_move(x: float, y: float) -> None:
     """Move the mouse cursor to (x, y) in global screen coordinates."""

@@ -194,6 +194,7 @@ export IPHONECLAW_APPLESCRIPT_MODE=osascript # 通过 /usr/bin/osascript fallbac
 | `IPHONECLAW_SUPERVISOR_TOKEN` | Supervisor bearer token | (空) |
 | `IPHONECLAW_RECORD_DIR` | 运行记录目录 | `./runs` |
 | `IPHONECLAW_APPLESCRIPT_MODE` | 打字模式: native/osascript | `native` |
+| `IPHONECLAW_RESTORE_CURSOR` | 每步操作后恢复鼠标位置（1/0） | `1` |
 
 ## Claude Code 集成
 
