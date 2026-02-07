@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iphoneclaw"
+version = "0.1.0"
+description = "macOS CLI to control iPhone via iPhone Mirroring with a VLM agent loop"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+dependencies = [
+  "pyobjc-core>=10.0; sys_platform=='darwin'",
+  "pyobjc-framework-Cocoa>=10.0; sys_platform=='darwin'",
+  "pyobjc-framework-Quartz>=10.0; sys_platform=='darwin'",
+  "pyobjc-framework-ApplicationServices>=10.0; sys_platform=='darwin'",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7",
+]
+
+[project.scripts]
+iphoneclaw = "iphoneclaw.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["iphoneclaw*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

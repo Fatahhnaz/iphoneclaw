@@ -1,0 +1,387 @@
+from __future__ import annotations
+
+import argparse
+import base64
+import os
+import time
+from typing import List, Optional
+
+from iphoneclaw.config import Config
+from iphoneclaw.config import load_config_from_env
+from iphoneclaw.supervisor.hub import SupervisorHub
+from iphoneclaw.supervisor.server import SupervisorHTTPServer
+from iphoneclaw.supervisor.state import WorkerControl
+from iphoneclaw.macos.capture import ScreenCapture
+from iphoneclaw.macos.permissions import run_doctor
+from iphoneclaw.macos.window import WindowFinder
+from iphoneclaw.macos.window import list_on_screen_windows
+from iphoneclaw.agent.conversation import ConversationStore
+from iphoneclaw.agent.loop import Worker
+
+
+def _normalize_model_name(model: str) -> str:
+    """
+    Accept UI-TARS-desktop style provider labels and normalize to a real Ark/OpenAI model id.
+    Example:
+      "VolcEngine Ark for Doubao-1.5-thinking-vision-pro" -> "doubao-1.5-thinking-vision-pro"
+    """
+    m = (model or "").strip()
+    if not m:
+        return m
+    prefix = "VolcEngine Ark for "
+    if m.startswith(prefix):
+        m = m[len(prefix) :].strip()
+    # Common "display names" from docs; keep as-is except normalize spaces.
+    # If user pasted the full UI label (with spaces), remove spaces around tokens.
+    m2 = " ".join(m.split())
+    return m2
+
+
+def _add_common_args(p: argparse.ArgumentParser) -> None:
+    p.add_argument(
+        "--app",
+        default=Config().target_app,
+        help="Target macOS app name (default: iPhone Mirroring).",
+    )
+    p.add_argument(
+        "--window-contains",
+        default="",
+        help="Override window match: require owner/title to contain this substring (debug/escape hatch).",
+    )
+
+
+def cmd_doctor(_args: argparse.Namespace) -> int:
+    return 0 if run_doctor() else 2
+
+
+def cmd_launch(args: argparse.Namespace) -> int:
+    wf = WindowFinder(app_name=args.app, window_contains=args.window_contains)
+    wf.launch_app()
+    b = wf.bounds
+    print(
+        f"window: app={args.app!r} id={wf.window_id} "
+        f"bounds=({b.x:.1f},{b.y:.1f},{b.width:.1f},{b.height:.1f})"
+    )
+    return 0
+
+
+def cmd_bounds(args: argparse.Namespace) -> int:
+    wf = WindowFinder(app_name=args.app, window_contains=args.window_contains)
+    wf.find_window()
+    b = wf.bounds
+    print(f"{b.x:.1f} {b.y:.1f} {b.width:.1f} {b.height:.1f}")
+    return 0
+
+
+def cmd_screenshot(args: argparse.Namespace) -> int:
+    wf = WindowFinder(app_name=args.app, window_contains=args.window_contains)
+    wf.find_window()
+    cap = ScreenCapture(wf)
+    shot = cap.capture()
+
+    out_path = args.out
+    if out_path is None:
+        out_path = os.path.abspath("screenshot.jpg")
+    else:
+        out_path = os.path.abspath(out_path)
+
+    jpg = base64.b64decode(shot.base64)
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, "wb") as f:
+        f.write(jpg)
+
+    b = shot.window_bounds
+    print(
+        f"wrote: {out_path}\n"
+        f"scale_factor: {shot.scale_factor:.3f}\n"
+        f"bounds: ({b.x:.1f},{b.y:.1f},{b.width:.1f},{b.height:.1f})"
+    )
+    if shot.crop_rect_px:
+        print(f"crop_rect_px: {shot.crop_rect_px} (raw {shot.raw_image_width}x{shot.raw_image_height})")
+    return 0
+
+
+def cmd_calibrate(args: argparse.Namespace) -> int:
+    wf = WindowFinder(app_name=args.app, window_contains=args.window_contains)
+    wf.find_window()
+    cap = ScreenCapture(wf)
+    shot = cap.capture()
+
+    out_dir = os.path.abspath(args.out_dir or ".")
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, "calibrate_screenshot.jpg")
+
+    jpg = base64.b64decode(shot.base64)
+    with open(out_path, "wb") as f:
+        f.write(jpg)
+
+    b = shot.window_bounds
+    print("wrote: %s" % out_path)
+    print("window bounds (global): x=%.1f y=%.1f w=%.1f h=%.1f" % (b.x, b.y, b.width, b.height))
+    print("screenshot pixels: w=%d h=%d scale_factor=%.3f" % (shot.image_width, shot.image_height, shot.scale_factor))
+    if shot.crop_rect_px:
+        print("raw window pixels: w=%d h=%d crop_rect_px=%s" % (shot.raw_image_width, shot.raw_image_height, shot.crop_rect_px))
+    print("mapping: screen_x = x + (model_x/1000)*w ; screen_y = y + (model_y/1000)*h")
+    return 0
+
+
+def cmd_windows(args: argparse.Namespace) -> int:
+    wins = list_on_screen_windows()
+    needle = (args.contains or "").lower().strip()
+    limit = int(args.limit)
+
+    rows = []
+    for w in wins:
+        owner = str(w.get("kCGWindowOwnerName") or "")
+        title = str(w.get("kCGWindowName") or "")
+        bounds = w.get("kCGWindowBounds") or {}
+        ww = int(bounds.get("Width") or 0)
+        hh = int(bounds.get("Height") or 0)
+        layer = int(w.get("kCGWindowLayer") or 0)
+        wid = int(w.get("kCGWindowNumber") or 0)
+        pid = int(w.get("kCGWindowOwnerPID") or 0)
+
+        hay = (owner + " " + title).lower()
+        if needle and needle not in hay:
+            continue
+        if ww < 50 or hh < 50:
+            continue
+        rows.append((ww * hh, owner, title, wid, pid, layer, ww, hh))
+
+    rows.sort(reverse=True, key=lambda x: x[0])
+    rows = rows[:limit]
+
+    for area, owner, title, wid, pid, layer, ww, hh in rows:
+        print(
+            "area=%d owner=%r title=%r wid=%d pid=%d layer=%d size=%dx%d"
+            % (area, owner, title, wid, pid, layer, ww, hh)
+        )
+    if not rows:
+        print("no windows matched")
+    return 0
+
+
+def _supervisor_base(cfg: Config) -> str:
+    return "http://%s:%d" % (cfg.supervisor_host, int(cfg.supervisor_port))
+
+
+def cmd_serve(args: argparse.Namespace) -> int:
+    cfg = load_config_from_env()
+    cfg.supervisor_host = args.host
+    cfg.supervisor_port = int(args.port)
+    cfg.supervisor_token = args.token or cfg.supervisor_token
+
+    hub = SupervisorHub()
+    control = WorkerControl()
+    conv = ConversationStore()
+    srv = SupervisorHTTPServer(cfg, hub, control, conv)
+    srv.start()
+    print("supervisor listening on %s" % _supervisor_base(cfg))
+    try:
+        while True:
+            time.sleep(1.0)
+    except KeyboardInterrupt:
+        srv.stop()
+        return 130
+
+
+def cmd_run(args: argparse.Namespace) -> int:
+    cfg = load_config_from_env()
+    cfg.target_app = args.app
+    cfg.window_contains = args.window_contains or cfg.window_contains
+    cfg.model_base_url = args.base_url or cfg.model_base_url
+    cfg.model_api_key = args.api_key or cfg.model_api_key
+    cfg.model_name = _normalize_model_name(args.model or cfg.model_name)
+    cfg.dry_run = bool(args.dry_run)
+    cfg.record_dir = args.record_dir or cfg.record_dir
+    cfg.supervisor_host = args.host or cfg.supervisor_host
+    cfg.supervisor_port = int(args.port or cfg.supervisor_port)
+    cfg.supervisor_token = args.token or cfg.supervisor_token
+    cfg.max_tokens = int(args.max_tokens or cfg.max_tokens)
+    cfg.temperature = float(args.temperature if args.temperature is not None else cfg.temperature)
+    cfg.top_p = float(args.top_p if args.top_p is not None else cfg.top_p)
+    if args.volc_thinking_type:
+        cfg.volc_thinking_type = args.volc_thinking_type
+    if args.scroll_mode:
+        cfg.scroll_mode = args.scroll_mode
+    if args.scroll_unit:
+        cfg.scroll_unit = args.scroll_unit
+    if args.scroll_amount is not None:
+        cfg.scroll_amount = int(args.scroll_amount)
+    if args.scroll_repeat is not None:
+        cfg.scroll_repeat = int(args.scroll_repeat)
+    if args.scroll_focus_click is not None:
+        cfg.scroll_focus_click = bool(args.scroll_focus_click)
+
+    hub = SupervisorHub()
+    control = WorkerControl()
+    conv = ConversationStore()
+
+    srv = None
+    if cfg.enable_supervisor:
+        srv = SupervisorHTTPServer(cfg, hub, control, conv)
+        srv.start()
+        print("supervisor listening on %s" % _supervisor_base(cfg))
+
+    w = Worker(cfg, hub=hub, control=control, conversation=conv)
+    try:
+        w.run(args.instruction)
+    finally:
+        if srv is not None:
+            srv.stop()
+    return 0
+
+
+def cmd_ctl(args: argparse.Namespace) -> int:
+    import json
+    import urllib.request
+
+    cfg = load_config_from_env()
+    base = args.base or _supervisor_base(cfg)
+    token = args.token or cfg.supervisor_token
+
+    def req(method: str, path: str, body: Optional[dict] = None) -> dict:
+        url = base.rstrip("/") + path
+        data = None
+        if body is not None:
+            data = json.dumps(body).encode("utf-8")
+        r = urllib.request.Request(url, data=data, method=method)
+        if token:
+            r.add_header("Authorization", "Bearer %s" % token)
+        if body is not None:
+            r.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(r, timeout=30) as resp:
+            raw = resp.read().decode("utf-8")
+            return json.loads(raw)
+
+    if args.action == "pause":
+        result = req("POST", "/v1/agent/pause")
+    elif args.action == "resume":
+        result = req("POST", "/v1/agent/resume")
+    elif args.action == "stop":
+        result = req("POST", "/v1/agent/stop")
+    elif args.action == "inject":
+        result = req("POST", "/v1/agent/inject", {"text": args.text, "pause": args.pause, "resume": args.resume})
+    elif args.action == "context":
+        result = req("GET", "/v1/agent/context?tailRounds=%d" % int(args.tail))
+    else:
+        raise SystemExit(2)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="iphoneclaw")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    p_doctor = sub.add_parser("doctor", help="Check macOS permissions.")
+    p_doctor.set_defaults(func=cmd_doctor)
+
+    p_launch = sub.add_parser("launch", help="Launch target app and print window bounds.")
+    _add_common_args(p_launch)
+    p_launch.set_defaults(func=cmd_launch)
+
+    p_bounds = sub.add_parser("bounds", help="Print window bounds (x y w h).")
+    _add_common_args(p_bounds)
+    p_bounds.set_defaults(func=cmd_bounds)
+
+    p_shot = sub.add_parser("screenshot", help="Capture target window to a JPEG file.")
+    _add_common_args(p_shot)
+    p_shot.add_argument("--out", default=None, help="Output path (default: ./screenshot.jpg).")
+    p_shot.set_defaults(func=cmd_screenshot)
+
+    p_cal = sub.add_parser("calibrate", help="Capture a screenshot and print coordinate mapping info.")
+    _add_common_args(p_cal)
+    p_cal.add_argument("--out-dir", default=None, help="Output directory (default: current directory).")
+    p_cal.set_defaults(func=cmd_calibrate)
+
+    p_win = sub.add_parser("windows", help="Debug: list visible windows from CGWindowList.")
+    p_win.add_argument("--contains", default="", help="Case-insensitive substring filter across owner/title.")
+    p_win.add_argument("--limit", default=30, type=int, help="Max rows to print.")
+    p_win.set_defaults(func=cmd_windows)
+
+    p_run = sub.add_parser("run", help="Run the worker loop (and supervisor API).")
+    _add_common_args(p_run)
+    p_run.add_argument("--instruction", required=True, help="Task instruction for the agent.")
+    p_run.add_argument("--base-url", default=None, help="Model base URL (OpenAI-compatible).")
+    p_run.add_argument("--api-key", default=None, help="Model API key.")
+    p_run.add_argument("--model", default=None, help="Model name (UniTAR).")
+    p_run.add_argument("--max-tokens", default=None, type=int, help="max_tokens for model output.")
+    p_run.add_argument("--temperature", default=None, type=float, help="temperature for model.")
+    p_run.add_argument("--top-p", default=None, type=float, help="top_p for model.")
+    p_run.add_argument(
+        "--volc-thinking-type",
+        default="",
+        help="Volcengine Ark only: thinking.type (disabled|enabled).",
+    )
+    p_run.add_argument("--dry-run", action="store_true", help="Parse actions but do not execute.")
+    p_run.add_argument(
+        "--scroll-mode",
+        default="",
+        help="Scroll mode: wheel (default) or drag (iOS-style swipe).",
+    )
+    p_run.add_argument(
+        "--scroll-unit",
+        default="",
+        help="Wheel unit: pixel (default) or line.",
+    )
+    p_run.add_argument(
+        "--scroll-amount",
+        default=None,
+        type=int,
+        help="Scroll magnitude per action (pixels or lines depending on --scroll-unit).",
+    )
+    p_run.add_argument(
+        "--scroll-repeat",
+        default=None,
+        type=int,
+        help="Split scroll into N smaller wheel events (default from config).",
+    )
+    p_run.add_argument(
+        "--scroll-focus-click",
+        default=None,
+        type=int,
+        help="1/0: click to focus before scrolling (default from config).",
+    )
+    p_run.add_argument("--record-dir", default=None, help="Directory to store runs (default: ./runs).")
+    p_run.add_argument("--host", default=None, help="Supervisor host (default: 127.0.0.1).")
+    p_run.add_argument("--port", default=None, help="Supervisor port (default: 17334).")
+    p_run.add_argument("--token", default=None, help="Supervisor bearer token.")
+    p_run.set_defaults(func=cmd_run)
+
+    p_serve = sub.add_parser("serve", help="Start supervisor API server only (no worker).")
+    p_serve.add_argument("--host", default="127.0.0.1")
+    p_serve.add_argument("--port", default=17334, type=int)
+    p_serve.add_argument("--token", default="")
+    p_serve.set_defaults(func=cmd_serve)
+
+    p_ctl = sub.add_parser("ctl", help="Control/inspect a running worker via supervisor API.")
+    p_ctl.add_argument("--base", default=None, help="Supervisor base URL, e.g. http://127.0.0.1:17334")
+    p_ctl.add_argument("--token", default=None, help="Bearer token")
+    p_ctl_sub = p_ctl.add_subparsers(dest="action", required=True)
+    for name in ("pause", "resume", "stop"):
+        sp = p_ctl_sub.add_parser(name)
+        sp.set_defaults(action=name)
+    sp_inj = p_ctl_sub.add_parser("inject")
+    sp_inj.add_argument("--text", required=True)
+    sp_inj.add_argument("--pause", action="store_true")
+    sp_inj.add_argument("--resume", action="store_true")
+    sp_inj.set_defaults(action="inject")
+    sp_ctx = p_ctl_sub.add_parser("context")
+    sp_ctx.add_argument("--tail", default=5, type=int)
+    sp_ctx.set_defaults(action="context")
+    p_ctl.set_defaults(func=cmd_ctl)
+
+    return p
+
+
+def main(argv: Optional[List[str]] = None) -> None:
+    import logging
+    logging.basicConfig(level=logging.WARNING, format="%(name)s: %(message)s")
+
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    rc = int(args.func(args))  # type: ignore[attr-defined]
+    raise SystemExit(rc)
