@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import time
 from typing import Any, Dict, List, Optional
 
@@ -78,11 +79,31 @@ class Worker:
                 if snap.get("status") != StatusEnum.RUNNING.value:
                     return
                 self.control.pause()
-                self.hub.set_status(self.control.snapshot()["status"])
-                self.hub.publish(
-                    "auto_pause",
-                    {"reason": "user_input", "kind": getattr(a, "kind", ""), "pos": getattr(a, "pos", None)},
-                )
+                snap2 = self.control.snapshot()
+                kind = getattr(a, "kind", "")
+                pos = getattr(a, "pos", None)
+                payload = {"reason": "user_input", "kind": kind, "pos": pos}
+
+                # 1) Print (so the local operator immediately understands what happened).
+                try:
+                    print(
+                        f"[iphoneclaw] auto-paused due to user input (kind={kind} pos={pos}). "
+                        f"Use `python -m iphoneclaw ctl resume` to continue.",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                except Exception:
+                    pass
+
+                # 2) Persist to run logs (runs/.../events.jsonl).
+                try:
+                    self.recorder.log_event("auto_pause", payload)
+                except Exception:
+                    pass
+
+                # 3) Publish to SSE.
+                self.hub.set_status(snap2["status"])
+                self.hub.publish("auto_pause", payload)
 
             self._monitor = UserInputMonitor(on_activity=_on_act)
             self._monitor.start()
