@@ -2,6 +2,8 @@
 
 [English](README.md) | [中文](README.zh.md)
 
+**iPhone + AI. Open-source Apple Intelligence: let agents take over your iPhone.**
+
 ![demo](assets/demo.gif)
 
 ![iphoneclaw mascot](assets/iphoneclaw-brand-mascot.png)
