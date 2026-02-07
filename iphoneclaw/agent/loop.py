@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import time
 from typing import Any, Dict, List, Optional
 
@@ -8,6 +9,7 @@ from iphoneclaw.agent.executor import execute_action
 from iphoneclaw.agent.recorder import RunRecorder
 from iphoneclaw.config import Config
 from iphoneclaw.macos.capture import ScreenCapture
+from iphoneclaw.macos.user_input_monitor import UserInputMonitor
 from iphoneclaw.macos.window import WindowFinder
 from iphoneclaw.model.client import OpenAICompatClient, invoke_model
 from iphoneclaw.model.image import data_url_from_jpeg_base64, resize_jpeg_base64, smart_resize
@@ -36,12 +38,14 @@ class Worker:
 
         self.wf = WindowFinder(app_name=cfg.target_app, window_contains=cfg.window_contains)
         self.cap = ScreenCapture(self.wf)
+        self._monitor: Optional[UserInputMonitor] = None
 
         self.client = OpenAICompatClient(cfg.model_base_url, cfg.model_api_key, cfg.model_name)
         self.system = system_prompt_v15(cfg.language)
         self._vision_image_url_as_string = ("volces.com" in cfg.model_base_url.lower()) or (
             "doubao" in cfg.model_name.lower()
         )
+        self._sent_type_ascii_guidance = False
 
     def _publish_conv(self, role: str, text: str) -> None:
         self.hub.publish("conversation", {"role": role, "text": text})
@@ -68,6 +72,43 @@ class Worker:
         self.control.set_status(StatusEnum.RUNNING)
         self.hub.set_status(self.control.snapshot()["status"])
 
+        if getattr(self.cfg, "auto_pause_on_user_input", False):
+            def _on_act(a) -> None:
+                snap = self.control.snapshot()
+                if snap.get("paused") or snap.get("stopped"):
+                    return
+                if snap.get("status") != StatusEnum.RUNNING.value:
+                    return
+                self.control.pause()
+                snap2 = self.control.snapshot()
+                kind = getattr(a, "kind", "")
+                pos = getattr(a, "pos", None)
+                payload = {"reason": "user_input", "kind": kind, "pos": pos}
+
+                # 1) Print (so the local operator immediately understands what happened).
+                try:
+                    print(
+                        f"[iphoneclaw] auto-paused due to user input (kind={kind} pos={pos}). "
+                        f"Use `python -m iphoneclaw ctl resume` to continue.",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                except Exception:
+                    pass
+
+                # 2) Persist to run logs (runs/.../events.jsonl).
+                try:
+                    self.recorder.log_event("auto_pause", payload)
+                except Exception:
+                    pass
+
+                # 3) Publish to SSE.
+                self.hub.set_status(snap2["status"])
+                self.hub.publish("auto_pause", payload)
+
+            self._monitor = UserInputMonitor(on_activity=_on_act)
+            self._monitor.start()
+
         # Top-level guard: never crash silently.
         try:
             self.wf.launch_app()
@@ -75,6 +116,8 @@ class Worker:
             self.control.set_status(StatusEnum.ERROR)
             self.hub.set_status(self.control.snapshot()["status"], error=str(e))
             self.hub.publish("error", {"where": "launch_app", "error": str(e)})
+            if self._monitor:
+                self._monitor.stop()
             return
 
         self.conversation.add("system", self.system)
@@ -91,6 +134,8 @@ class Worker:
                 if self.control.snapshot()["stopped"]:
                     self.control.set_status(StatusEnum.USER_STOPPED)
                     self.hub.set_status(self.control.snapshot()["status"])
+                    if self._monitor:
+                        self._monitor.stop()
                     return
 
                 # Pause / Hang gate at step boundaries
@@ -99,6 +144,8 @@ class Worker:
                     if self.control.snapshot()["stopped"]:
                         self.control.set_status(StatusEnum.USER_STOPPED)
                         self.hub.set_status(self.control.snapshot()["status"])
+                        if self._monitor:
+                            self._monitor.stop()
                         return
 
                 injected = self.control.pop_injected()
@@ -112,6 +159,8 @@ class Worker:
                 if step > int(self.cfg.max_loop_count):
                     self.control.set_status(StatusEnum.ERROR)
                     self.hub.set_status(self.control.snapshot()["status"], error="max_loop_count")
+                    if self._monitor:
+                        self._monitor.stop()
                     return
 
                 shot = self.cap.capture()
@@ -186,6 +235,8 @@ class Worker:
                         continue
                     self.control.set_status(StatusEnum.END)
                     self.hub.set_status(self.control.snapshot()["status"])
+                    if self._monitor:
+                        self._monitor.stop()
                     return
 
                 if pred.action_type == "call_user":
@@ -197,12 +248,32 @@ class Worker:
                         continue
                     self.control.set_status(StatusEnum.CALL_USER)
                     self.hub.set_status(self.control.snapshot()["status"])
+                    if self._monitor:
+                        self._monitor.stop()
                     return
 
                 self.wf.activate_app()
                 res = execute_action(self.cfg, pred, shot)
                 self.recorder.write_step(step, exec_result=res)
                 self.recorder.log_event("exec", res)
+
+                if not res.get("ok"):
+                    err = str(res.get("error") or "")
+                    self.hub.publish("error", {"where": "exec", "error": err, "step": step})
+
+                    # If we blocked non-ASCII typing, guide the model to use IME (pinyin) instead.
+                    if pred.action_type == "type" and ("ASCII only" in err) and (not self._sent_type_ascii_guidance):
+                        self._sent_type_ascii_guidance = True
+                        txt = (
+                            "[System Constraint]\n"
+                            "Typing constraint: `type(content=...)` must be ASCII only.\n"
+                            "If you need to input Chinese, type pinyin letters (ASCII) with the iPhone IME, "
+                            "then select the Chinese candidate by clicking the candidate bar.\n"
+                            "Do NOT output Chinese characters inside `type(content=...)`."
+                        )
+                        self.conversation.add("user", txt, injected=True)
+                        self.recorder.log_conversation("user", txt, injected=True)
+                        self._publish_conv("user", txt)
 
                 # Update status each loop
                 self.control.set_status(StatusEnum.RUNNING)
@@ -214,4 +285,6 @@ class Worker:
                 self.hub.set_status(self.control.snapshot()["status"], error=str(e), step=step)
                 self.hub.publish("error", {"where": "loop", "error": str(e), "step": step})
                 self.recorder.log_event("error", {"error": str(e), "step": step})
+                if self._monitor:
+                    self._monitor.stop()
                 return

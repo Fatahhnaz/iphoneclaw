@@ -6,8 +6,17 @@ import time
 
 import Quartz
 
+from iphoneclaw.macos.user_input_monitor import IPHONECLAW_EVENT_TAG
+
 
 def _post(event) -> None:
+    # Mark event as "agent-injected" so UserInputMonitor can ignore it.
+    try:
+        Quartz.CGEventSetIntegerValueField(
+            event, Quartz.kCGEventSourceUserData, int(IPHONECLAW_EVENT_TAG)
+        )
+    except Exception:
+        pass
     Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
 
 def mouse_position() -> tuple[float, float]:
@@ -139,6 +148,7 @@ def mouse_scroll(
     unit: str = "pixel",
     repeat: int = 1,
     focus_click: bool = False,
+    invert_y: bool = False,
 ) -> None:
     """Scroll at (x, y) in the given direction."""
     # Move cursor to position first
@@ -169,7 +179,11 @@ def mouse_scroll(
 
     for _ in range(repeat):
         if direction in ("up", "down"):
-            dy = per if direction == "up" else -per
+            # Quartz scroll wheel: conventionally, positive dy scrolls up and negative dy scrolls down.
+            # Some macOS setups may feel inverted; allow an explicit invert.
+            dy = (per if direction == "up" else -per)
+            if invert_y:
+                dy = -dy
             scroll_evt = Quartz.CGEventCreateScrollWheelEvent(
                 None, cg_unit, 1, dy
             )

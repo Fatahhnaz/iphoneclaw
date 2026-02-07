@@ -11,6 +11,8 @@ from typing import Dict, Iterable, List, Optional
 
 import Quartz
 
+from iphoneclaw.macos.user_input_monitor import IPHONECLAW_EVENT_TAG
+
 
 # Key codes are hardware-dependent; these are standard for US keyboard layouts.
 KEYCODES: Dict[str, int] = {
@@ -81,6 +83,13 @@ MOD_FLAGS: Dict[str, int] = {
 
 
 def _post(event) -> None:
+    # Mark event as "agent-injected" so UserInputMonitor can ignore it.
+    try:
+        Quartz.CGEventSetIntegerValueField(
+            event, Quartz.kCGEventSourceUserData, int(IPHONECLAW_EVENT_TAG)
+        )
+    except Exception:
+        pass
     Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
 
 

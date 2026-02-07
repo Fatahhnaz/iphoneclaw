@@ -212,6 +212,10 @@ def cmd_run(args: argparse.Namespace) -> int:
         cfg.scroll_repeat = int(args.scroll_repeat)
     if args.scroll_focus_click is not None:
         cfg.scroll_focus_click = bool(args.scroll_focus_click)
+    if getattr(args, "auto_pause_on_user_input", False):
+        cfg.auto_pause_on_user_input = True
+    if getattr(args, "no_auto_pause_on_user_input", False):
+        cfg.auto_pause_on_user_input = False
 
     hub = SupervisorHub()
     control = WorkerControl()
@@ -317,6 +321,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Volcengine Ark only: thinking.type (disabled|enabled).",
     )
     p_run.add_argument("--dry-run", action="store_true", help="Parse actions but do not execute.")
+    ap = p_run.add_mutually_exclusive_group()
+    ap.add_argument(
+        "--auto-pause-on-user-input",
+        action="store_true",
+        help="Auto-pause when you move mouse/press keys (emits SSE auto_pause).",
+    )
+    ap.add_argument(
+        "--no-auto-pause-on-user-input",
+        action="store_true",
+        help="Disable auto-pause on user input (overrides env).",
+    )
     p_run.add_argument(
         "--scroll-mode",
         default="",

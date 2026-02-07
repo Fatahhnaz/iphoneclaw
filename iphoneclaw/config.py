@@ -53,10 +53,22 @@ class Config:
     scroll_unit: str = "pixel"  # pixel|line
     scroll_amount: int = 1000  # pixels or lines, depending on scroll_unit
     scroll_repeat: int = 10
-    scroll_focus_click: bool = True
+    # If enabled, scroll will click to focus first. This can accidentally open items under cursor,
+    # so keep it OFF by default.
+    scroll_focus_click: bool = False
+    scroll_invert_y: bool = False
 
     # UX: restore mouse cursor position after each action, so the operator can keep using their Mac.
     restore_cursor: bool = True
+
+    # UX: if the user moves the mouse / presses keys while the worker is running,
+    # automatically pause and emit an SSE event for external supervisors.
+    # Default off to avoid surprising pauses; enable explicitly when needed.
+    auto_pause_on_user_input: bool = False
+
+    # Input constraint: disallow non-ASCII typing. For Chinese, type pinyin (ASCII)
+    # and then select IME candidates via clicks.
+    type_ascii_only: bool = True
 
 
 def load_config_from_env() -> Config:
@@ -82,7 +94,16 @@ def load_config_from_env() -> Config:
     c.scroll_focus_click = os.getenv(
         "IPHONECLAW_SCROLL_FOCUS_CLICK", "1" if c.scroll_focus_click else "0"
     ).strip().lower() in ("1", "true", "yes", "y", "on")
+    c.scroll_invert_y = os.getenv(
+        "IPHONECLAW_SCROLL_INVERT_Y", "1" if c.scroll_invert_y else "0"
+    ).strip().lower() in ("1", "true", "yes", "y", "on")
     c.restore_cursor = os.getenv(
         "IPHONECLAW_RESTORE_CURSOR", "1" if c.restore_cursor else "0"
+    ).strip().lower() in ("1", "true", "yes", "y", "on")
+    c.auto_pause_on_user_input = os.getenv(
+        "IPHONECLAW_AUTO_PAUSE_ON_USER_INPUT", "1" if c.auto_pause_on_user_input else "0"
+    ).strip().lower() in ("1", "true", "yes", "y", "on")
+    c.type_ascii_only = os.getenv(
+        "IPHONECLAW_TYPE_ASCII_ONLY", "1" if c.type_ascii_only else "0"
     ).strip().lower() in ("1", "true", "yes", "y", "on")
     return c

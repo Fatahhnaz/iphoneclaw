@@ -85,11 +85,6 @@ def execute_action(
         out["ok"] = True
         out["dt"] = time.time() - t0
         return out
-    if action_type == "iphone_spotlight_search":
-        press("3", modifiers=["cmd"])
-        out["ok"] = True
-        out["dt"] = time.time() - t0
-        return out
 
     try:
         # macOS has one shared cursor; best-effort restore so users can keep using their Mac.
@@ -190,6 +185,7 @@ def execute_action(
                     unit=str(cfg.scroll_unit),
                     repeat=int(cfg.scroll_repeat),
                     focus_click=bool(cfg.scroll_focus_click),
+                    invert_y=bool(getattr(cfg, "scroll_invert_y", False)),
                 )
 
         elif action_type == "hotkey":
@@ -204,6 +200,11 @@ def execute_action(
 
         elif action_type == "type":
             content = ai.content or ""
+            if getattr(cfg, "type_ascii_only", True) and not content.isascii():
+                raise ValueError(
+                    "type(content=...) must be ASCII only. For Chinese, type pinyin (ASCII) "
+                    "via the iPhone IME and select the Chinese candidate via clicks."
+                )
             if sys.platform == "darwin":
                 # macOS: prefer AppleScript keystroke (matches UI-TARS-desktop behavior).
                 try:
