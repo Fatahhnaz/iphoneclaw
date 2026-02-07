@@ -63,6 +63,10 @@ class Config:
     # Default off to avoid surprising pauses; enable explicitly when needed.
     auto_pause_on_user_input: bool = False
 
+    # Input constraint: disallow non-ASCII typing. For Chinese, type pinyin (ASCII)
+    # and then select IME candidates via clicks.
+    type_ascii_only: bool = True
+
 
 def load_config_from_env() -> Config:
     """Lightweight env override to avoid hard dependency on pydantic."""
@@ -92,5 +96,8 @@ def load_config_from_env() -> Config:
     ).strip().lower() in ("1", "true", "yes", "y", "on")
     c.auto_pause_on_user_input = os.getenv(
         "IPHONECLAW_AUTO_PAUSE_ON_USER_INPUT", "1" if c.auto_pause_on_user_input else "0"
+    ).strip().lower() in ("1", "true", "yes", "y", "on")
+    c.type_ascii_only = os.getenv(
+        "IPHONECLAW_TYPE_ASCII_ONLY", "1" if c.type_ascii_only else "0"
     ).strip().lower() in ("1", "true", "yes", "y", "on")
     return c

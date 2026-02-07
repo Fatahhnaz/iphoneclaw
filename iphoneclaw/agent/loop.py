@@ -45,6 +45,7 @@ class Worker:
         self._vision_image_url_as_string = ("volces.com" in cfg.model_base_url.lower()) or (
             "doubao" in cfg.model_name.lower()
         )
+        self._sent_type_ascii_guidance = False
 
     def _publish_conv(self, role: str, text: str) -> None:
         self.hub.publish("conversation", {"role": role, "text": text})
@@ -255,6 +256,24 @@ class Worker:
                 res = execute_action(self.cfg, pred, shot)
                 self.recorder.write_step(step, exec_result=res)
                 self.recorder.log_event("exec", res)
+
+                if not res.get("ok"):
+                    err = str(res.get("error") or "")
+                    self.hub.publish("error", {"where": "exec", "error": err, "step": step})
+
+                    # If we blocked non-ASCII typing, guide the model to use IME (pinyin) instead.
+                    if pred.action_type == "type" and ("ASCII only" in err) and (not self._sent_type_ascii_guidance):
+                        self._sent_type_ascii_guidance = True
+                        txt = (
+                            "[System Constraint]\n"
+                            "Typing constraint: `type(content=...)` must be ASCII only.\n"
+                            "If you need to input Chinese, type pinyin letters (ASCII) with the iPhone IME, "
+                            "then select the Chinese candidate by clicking the candidate bar.\n"
+                            "Do NOT output Chinese characters inside `type(content=...)`."
+                        )
+                        self.conversation.add("user", txt, injected=True)
+                        self.recorder.log_conversation("user", txt, injected=True)
+                        self._publish_conv("user", txt)
 
                 # Update status each loop
                 self.control.set_status(StatusEnum.RUNNING)

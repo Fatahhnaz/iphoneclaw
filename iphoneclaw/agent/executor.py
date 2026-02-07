@@ -204,6 +204,11 @@ def execute_action(
 
         elif action_type == "type":
             content = ai.content or ""
+            if getattr(cfg, "type_ascii_only", True) and not content.isascii():
+                raise ValueError(
+                    "type(content=...) must be ASCII only. For Chinese, type pinyin (ASCII) "
+                    "via the iPhone IME and select the Chinese candidate via clicks."
+                )
             if sys.platform == "darwin":
                 # macOS: prefer AppleScript keystroke (matches UI-TARS-desktop behavior).
                 try:
