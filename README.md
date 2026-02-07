@@ -4,6 +4,8 @@
 
 ![iphoneclaw mascot](assets/iphoneclaw-brand-mascot.png)
 
+Official site: https://iphoneclaw.com
+
 macOS-only Python CLI worker that controls the **iPhone Mirroring / iPhone镜像** window using a VLM (Vision Language Model) agent loop:
 
 1. Capture window screenshot (Quartz CGWindowList)
