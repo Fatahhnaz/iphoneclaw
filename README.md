@@ -286,3 +286,7 @@ Ensure model environment variables are set before invoking (`IPHONECLAW_MODEL_BA
 ## Thanks
 
 - [UI-TARS](https://github.com/bytedance/UI-TARS)
+
+## License
+
+Apache-2.0

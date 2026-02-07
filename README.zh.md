@@ -229,3 +229,7 @@ cp .claude/skills/iphoneclaw/SKILL.md ~/.claude/skills/iphoneclaw/SKILL.md
 ## 致谢
 
 - [UI-TARS](https://github.com/bytedance/UI-TARS)
+
+## 许可证
+
+Apache-2.0
