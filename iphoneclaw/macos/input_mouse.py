@@ -6,8 +6,17 @@ import time
 
 import Quartz
 
+from iphoneclaw.macos.user_input_monitor import IPHONECLAW_EVENT_TAG
+
 
 def _post(event) -> None:
+    # Mark event as "agent-injected" so UserInputMonitor can ignore it.
+    try:
+        Quartz.CGEventSetIntegerValueField(
+            event, Quartz.kCGEventSourceUserData, int(IPHONECLAW_EVENT_TAG)
+        )
+    except Exception:
+        pass
     Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
 
 def mouse_position() -> tuple[float, float]:

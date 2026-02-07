@@ -8,6 +8,7 @@ from iphoneclaw.agent.executor import execute_action
 from iphoneclaw.agent.recorder import RunRecorder
 from iphoneclaw.config import Config
 from iphoneclaw.macos.capture import ScreenCapture
+from iphoneclaw.macos.user_input_monitor import UserInputMonitor
 from iphoneclaw.macos.window import WindowFinder
 from iphoneclaw.model.client import OpenAICompatClient, invoke_model
 from iphoneclaw.model.image import data_url_from_jpeg_base64, resize_jpeg_base64, smart_resize
@@ -36,6 +37,7 @@ class Worker:
 
         self.wf = WindowFinder(app_name=cfg.target_app, window_contains=cfg.window_contains)
         self.cap = ScreenCapture(self.wf)
+        self._monitor: Optional[UserInputMonitor] = None
 
         self.client = OpenAICompatClient(cfg.model_base_url, cfg.model_api_key, cfg.model_name)
         self.system = system_prompt_v15(cfg.language)
@@ -68,6 +70,23 @@ class Worker:
         self.control.set_status(StatusEnum.RUNNING)
         self.hub.set_status(self.control.snapshot()["status"])
 
+        if getattr(self.cfg, "auto_pause_on_user_input", True):
+            def _on_act(a) -> None:
+                snap = self.control.snapshot()
+                if snap.get("paused") or snap.get("stopped"):
+                    return
+                if snap.get("status") != StatusEnum.RUNNING.value:
+                    return
+                self.control.pause()
+                self.hub.set_status(self.control.snapshot()["status"])
+                self.hub.publish(
+                    "auto_pause",
+                    {"reason": "user_input", "kind": getattr(a, "kind", ""), "pos": getattr(a, "pos", None)},
+                )
+
+            self._monitor = UserInputMonitor(on_activity=_on_act)
+            self._monitor.start()
+
         # Top-level guard: never crash silently.
         try:
             self.wf.launch_app()
@@ -75,6 +94,8 @@ class Worker:
             self.control.set_status(StatusEnum.ERROR)
             self.hub.set_status(self.control.snapshot()["status"], error=str(e))
             self.hub.publish("error", {"where": "launch_app", "error": str(e)})
+            if self._monitor:
+                self._monitor.stop()
             return
 
         self.conversation.add("system", self.system)
@@ -91,6 +112,8 @@ class Worker:
                 if self.control.snapshot()["stopped"]:
                     self.control.set_status(StatusEnum.USER_STOPPED)
                     self.hub.set_status(self.control.snapshot()["status"])
+                    if self._monitor:
+                        self._monitor.stop()
                     return
 
                 # Pause / Hang gate at step boundaries
@@ -99,6 +122,8 @@ class Worker:
                     if self.control.snapshot()["stopped"]:
                         self.control.set_status(StatusEnum.USER_STOPPED)
                         self.hub.set_status(self.control.snapshot()["status"])
+                        if self._monitor:
+                            self._monitor.stop()
                         return
 
                 injected = self.control.pop_injected()
@@ -112,6 +137,8 @@ class Worker:
                 if step > int(self.cfg.max_loop_count):
                     self.control.set_status(StatusEnum.ERROR)
                     self.hub.set_status(self.control.snapshot()["status"], error="max_loop_count")
+                    if self._monitor:
+                        self._monitor.stop()
                     return
 
                 shot = self.cap.capture()
@@ -186,6 +213,8 @@ class Worker:
                         continue
                     self.control.set_status(StatusEnum.END)
                     self.hub.set_status(self.control.snapshot()["status"])
+                    if self._monitor:
+                        self._monitor.stop()
                     return
 
                 if pred.action_type == "call_user":
@@ -197,6 +226,8 @@ class Worker:
                         continue
                     self.control.set_status(StatusEnum.CALL_USER)
                     self.hub.set_status(self.control.snapshot()["status"])
+                    if self._monitor:
+                        self._monitor.stop()
                     return
 
                 self.wf.activate_app()
@@ -214,4 +245,6 @@ class Worker:
                 self.hub.set_status(self.control.snapshot()["status"], error=str(e), step=step)
                 self.hub.publish("error", {"where": "loop", "error": str(e), "step": step})
                 self.recorder.log_event("error", {"error": str(e), "step": step})
+                if self._monitor:
+                    self._monitor.stop()
                 return

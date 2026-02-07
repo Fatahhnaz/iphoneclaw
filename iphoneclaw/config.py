@@ -58,6 +58,10 @@ class Config:
     # UX: restore mouse cursor position after each action, so the operator can keep using their Mac.
     restore_cursor: bool = True
 
+    # UX: if the user moves the mouse / presses keys while the worker is running,
+    # automatically pause and emit an SSE event for external supervisors.
+    auto_pause_on_user_input: bool = True
+
 
 def load_config_from_env() -> Config:
     """Lightweight env override to avoid hard dependency on pydantic."""
@@ -84,5 +88,8 @@ def load_config_from_env() -> Config:
     ).strip().lower() in ("1", "true", "yes", "y", "on")
     c.restore_cursor = os.getenv(
         "IPHONECLAW_RESTORE_CURSOR", "1" if c.restore_cursor else "0"
+    ).strip().lower() in ("1", "true", "yes", "y", "on")
+    c.auto_pause_on_user_input = os.getenv(
+        "IPHONECLAW_AUTO_PAUSE_ON_USER_INPUT", "1" if c.auto_pause_on_user_input else "0"
     ).strip().lower() in ("1", "true", "yes", "y", "on")
     return c
