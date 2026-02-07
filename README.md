@@ -1,6 +1,6 @@
 # iphoneclaw
 
-<video controls muted playsinline src="assets/iphoneclaw.mp4" style="max-width: 100%; height: auto;"></video>
+<video controls muted playsinline src="https://github.com/NoEdgeAI/iphoneclaw/raw/refs/heads/main/assets/iphoneclaw.mp4" style="max-width: 100%; height: auto;"></video>
 
 ![iphoneclaw mascot](assets/iphoneclaw-brand-mascot.png)
 
