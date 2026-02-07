@@ -11,8 +11,7 @@
 Full demo video: [assets/iphoneclaw.mp4](assets/iphoneclaw.mp4)
 
 Official site: https://iphoneclaw.com
-
-macOS-only Python CLI worker that controls the **iPhone Mirroring / iPhone镜像** window using a VLM (Vision Language Model) agent loop:
+iPhone镜像** window using a VLM (Vision Language Model) agent loop:
 
 1. Capture window screenshot (Quartz CGWindowList)
 2. Call an OpenAI-compatible vision chat endpoint
@@ -43,8 +42,7 @@ cd iphoneclaw
 # pip
 pip install -e .
 
-# or uv
-uv pip install -e .
+# or uvall -e .
 ```
 
 To include dev dependencies (pytest):
@@ -252,6 +250,7 @@ export IPHONECLAW_APPLESCRIPT_MODE=osascript # fallback via /usr/bin/osascript
 | `IPHONECLAW_RESTORE_CURSOR` | Restore mouse cursor position after each action (1/0) | `1` |
 | `IPHONECLAW_AUTO_PAUSE_ON_USER_INPUT` | Auto-pause when user touches mouse/keyboard (1/0) | `0` |
 | `IPHONECLAW_TYPE_ASCII_ONLY` | Reject non-ASCII `type(content=...)` (use pinyin + IME for Chinese) (1/0) | `1` |
+| `IPHONECLAW_SCROLL_INVERT_Y` | Invert vertical wheel scroll direction (1/0) | `0` |
 
 ## Claude Code Integration
 

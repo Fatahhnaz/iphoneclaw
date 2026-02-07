@@ -54,6 +54,7 @@ class Config:
     scroll_amount: int = 1000  # pixels or lines, depending on scroll_unit
     scroll_repeat: int = 10
     scroll_focus_click: bool = True
+    scroll_invert_y: bool = False
 
     # UX: restore mouse cursor position after each action, so the operator can keep using their Mac.
     restore_cursor: bool = True
@@ -90,6 +91,9 @@ def load_config_from_env() -> Config:
     c.scroll_repeat = int(os.getenv("IPHONECLAW_SCROLL_REPEAT", str(c.scroll_repeat)))
     c.scroll_focus_click = os.getenv(
         "IPHONECLAW_SCROLL_FOCUS_CLICK", "1" if c.scroll_focus_click else "0"
+    ).strip().lower() in ("1", "true", "yes", "y", "on")
+    c.scroll_invert_y = os.getenv(
+        "IPHONECLAW_SCROLL_INVERT_Y", "1" if c.scroll_invert_y else "0"
     ).strip().lower() in ("1", "true", "yes", "y", "on")
     c.restore_cursor = os.getenv(
         "IPHONECLAW_RESTORE_CURSOR", "1" if c.restore_cursor else "0"

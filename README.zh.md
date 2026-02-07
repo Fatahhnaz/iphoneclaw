@@ -197,6 +197,7 @@ export IPHONECLAW_APPLESCRIPT_MODE=osascript # 通过 /usr/bin/osascript fallbac
 | `IPHONECLAW_RESTORE_CURSOR` | 每步操作后恢复鼠标位置（1/0） | `1` |
 | `IPHONECLAW_AUTO_PAUSE_ON_USER_INPUT` | 用户触碰鼠标/键盘时自动暂停（1/0） | `0` |
 | `IPHONECLAW_TYPE_ASCII_ONLY` | 禁止在 `type(content=...)` 里输出中文（用拼音 + 输入法候选）(1/0) | `1` |
+| `IPHONECLAW_SCROLL_INVERT_Y` | 反转竖向滚轮方向（1/0） | `0` |
 
 ## Claude Code 集成
 

@@ -28,5 +28,7 @@ def system_prompt_v15(language: str = "en") -> str:
         "- If you are done, use finished(). If you need user help, use call_user().\n"
         "- Typing constraint: `type(content=...)` must be ASCII only. For Chinese input, type pinyin letters (ASCII)\n"
         "  using the iPhone IME and select the Chinese candidate via clicks. Do NOT output Chinese characters in type().\n"
+        "- iPhone Home/App Library scrolling: perform scroll/swipe near the bottom (just above the tab bar / dock),\n"
+        "  not in the middle of the screen.\n"
         f"- Respond in language: {language}\n"
     )

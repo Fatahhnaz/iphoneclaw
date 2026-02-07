@@ -185,6 +185,7 @@ def execute_action(
                     unit=str(cfg.scroll_unit),
                     repeat=int(cfg.scroll_repeat),
                     focus_click=bool(cfg.scroll_focus_click),
+                    invert_y=bool(getattr(cfg, "scroll_invert_y", False)),
                 )
 
         elif action_type == "hotkey":

@@ -148,6 +148,7 @@ def mouse_scroll(
     unit: str = "pixel",
     repeat: int = 1,
     focus_click: bool = False,
+    invert_y: bool = False,
 ) -> None:
     """Scroll at (x, y) in the given direction."""
     # Move cursor to position first
@@ -178,7 +179,11 @@ def mouse_scroll(
 
     for _ in range(repeat):
         if direction in ("up", "down"):
-            dy = per if direction == "up" else -per
+            # Match typical "deltaY > 0 => scroll down" semantics (web / UI-TARS operators).
+            # Some macOS setups may feel inverted; allow an explicit invert.
+            dy = (-per if direction == "up" else per)
+            if invert_y:
+                dy = -dy
             scroll_evt = Quartz.CGEventCreateScrollWheelEvent(
                 None, cg_unit, 1, dy
             )
