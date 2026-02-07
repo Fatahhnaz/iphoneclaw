@@ -1,5 +1,7 @@
 # iphoneclaw
 
+[English](README.md) | [中文](README.zh.md)
+
 ![demo](assets/demo.gif)
 
 ![iphoneclaw mascot](assets/iphoneclaw-brand-mascot.png)
@@ -22,7 +24,11 @@ This is designed to plug into orchestrators like **Claude Code** / **Codex** as 
 
 ## Prerequisites
 
-- macOS with **iPhone Mirroring** (macOS 15 Sequoia+)
+- A Mac (Mac mini / MacBook) + an iPhone
+- iPhone Mirroring supported:
+  - Mac: **macOS Sequoia (macOS 15)** or newer
+  - iPhone: **iOS 18** or newer
+  - Both devices signed in with the **same Apple ID**
 - Python >= 3.9
 - Screen Recording & Accessibility permissions granted to your terminal
 
