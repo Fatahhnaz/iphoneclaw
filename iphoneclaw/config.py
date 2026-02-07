@@ -60,7 +60,8 @@ class Config:
 
     # UX: if the user moves the mouse / presses keys while the worker is running,
     # automatically pause and emit an SSE event for external supervisors.
-    auto_pause_on_user_input: bool = True
+    # Default off to avoid surprising pauses; enable explicitly when needed.
+    auto_pause_on_user_input: bool = False
 
 
 def load_config_from_env() -> Config:

@@ -250,7 +250,7 @@ export IPHONECLAW_APPLESCRIPT_MODE=osascript # fallback via /usr/bin/osascript
 | `IPHONECLAW_RECORD_DIR` | Run recording directory | `./runs` |
 | `IPHONECLAW_APPLESCRIPT_MODE` | Typing mode: native/osascript | `native` |
 | `IPHONECLAW_RESTORE_CURSOR` | Restore mouse cursor position after each action (1/0) | `1` |
-| `IPHONECLAW_AUTO_PAUSE_ON_USER_INPUT` | Auto-pause when user touches mouse/keyboard (1/0) | `1` |
+| `IPHONECLAW_AUTO_PAUSE_ON_USER_INPUT` | Auto-pause when user touches mouse/keyboard (1/0) | `0` |
 
 ## Claude Code Integration
 

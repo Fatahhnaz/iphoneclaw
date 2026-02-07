@@ -71,7 +71,7 @@ class Worker:
         self.control.set_status(StatusEnum.RUNNING)
         self.hub.set_status(self.control.snapshot()["status"])
 
-        if getattr(self.cfg, "auto_pause_on_user_input", True):
+        if getattr(self.cfg, "auto_pause_on_user_input", False):
             def _on_act(a) -> None:
                 snap = self.control.snapshot()
                 if snap.get("paused") or snap.get("stopped"):
