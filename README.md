@@ -301,6 +301,12 @@ Ensure model environment variables are set before invoking (`IPHONECLAW_MODEL_BA
 
 - [UI-TARS](https://github.com/bytedance/UI-TARS)
 
+## Friends
+
+1. [doc2x.noedgeai.com](https://doc2x.noedgeai.com) - pdf2md, PDF conversion/translation, NanoBanana image-to-editable export to PPTX, browser translation extension.
+2. [QuantumNous/new-api](https://github.com/QuantumNous/new-api) - Next-Generation LLM Gateway and AI Asset Management System.
+3. [teamoteam.com](https://teamoteam.com) - Zero-deploy cloud ClawDBot, smart agents.
+
 ## TODO
 
 1. Fine-tune UI-TARS-1.5 7B to better fit iOS interaction patterns.

@@ -245,6 +245,12 @@ cp .claude/skills/iphoneclaw/SKILL.md ~/.claude/skills/iphoneclaw/SKILL.md
 
 - [UI-TARS](https://github.com/bytedance/UI-TARS)
 
+## 友链
+
+1. [doc2x.noedgeai.com](https://doc2x.noedgeai.com) - pdf2md、PDF 格式转换、PDF 翻译、NanoBanana 图片可编辑导出 PPTX、浏览器翻译插件。
+2. [QuantumNous/new-api](https://github.com/QuantumNous/new-api) - 下一代 LLM 网关与 AI 资产管理系统。
+3. [teamoteam.com](https://teamoteam.com) - 免部署云端 ClawDBot，智能 Agent。
+
 ## TODO
 
 1. 微调 UI-TARS-1.5 7B，让它更贴合 iOS 的交互逻辑。
