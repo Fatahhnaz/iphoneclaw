@@ -26,6 +26,8 @@
 
 同时支持“持续学习”：supervisor 可以把经验教训记录在 `WORKER_DIARY.md`，并在每次新任务开始前先查一查，让 worker 越用越熟练。
 
+社区日记仓库（需用户同意后再提交 PR）：https://github.com/NoEdgeAI/awesome-iphoneclaw-diary
+
 ## 设备与系统要求
 
 - 一台 Mac（Mac mini / MacBook）+ 一台 iPhone

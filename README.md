@@ -26,6 +26,8 @@ This is designed to plug into orchestrators like **Claude Code** / **Codex** as 
 
 It can also **improve over time**: supervisors can record “lessons learned” in `WORKER_DIARY.md`, and consult it before starting new tasks.
 
+Community diary repo (opt-in PRs): https://github.com/NoEdgeAI/awesome-iphoneclaw-diary
+
 ## Prerequisites
 
 - A Mac (Mac mini / MacBook) + an iPhone
