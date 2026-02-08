@@ -241,6 +241,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 def cmd_ctl(args: argparse.Namespace) -> int:
     import json
     import urllib.request
+    import urllib.error
 
     cfg = load_config_from_env()
     base = args.base or _supervisor_base(cfg)
@@ -256,9 +257,18 @@ def cmd_ctl(args: argparse.Namespace) -> int:
             r.add_header("Authorization", "Bearer %s" % token)
         if body is not None:
             r.add_header("Content-Type", "application/json")
-        with urllib.request.urlopen(r, timeout=30) as resp:
-            raw = resp.read().decode("utf-8")
-            return json.loads(raw)
+        try:
+            with urllib.request.urlopen(r, timeout=30) as resp:
+                raw = resp.read().decode("utf-8")
+                return json.loads(raw)
+        except urllib.error.URLError as e:
+            # Common: server not running (ConnectionRefusedError).
+            raise RuntimeError(
+                "Failed to reach supervisor API at %s (cmd=%s). "
+                "Is `python -m iphoneclaw run ...` currently running, and is the host/port correct? "
+                "You can override with `--base http://127.0.0.1:17334` and `--token ...`."
+                % (base, args.action)
+            ) from e
 
     if args.action == "pause":
         result = req("POST", "/v1/agent/pause")
