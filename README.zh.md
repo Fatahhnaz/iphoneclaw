@@ -24,6 +24,8 @@
 
 同时提供 **本地 Supervisor API**（仅文本 + SSE），便于外部 Agent 框架监督运行：拉取最近 N 轮对话、订阅实时事件，并通过 `pause/resume/stop/inject` 进行干预。设计目标是可以接入 **Claude Code / Codex** 等编排框架，让“老板 Agent”监管这个 UI Worker。
 
+同时支持“持续学习”：supervisor 可以把经验教训记录在 `WORKER_DIARY.md`，并在每次新任务开始前先查一查，让 worker 越用越熟练。
+
 ## 设备与系统要求
 
 - 一台 Mac（Mac mini / MacBook）+ 一台 iPhone

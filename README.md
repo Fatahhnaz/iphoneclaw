@@ -11,7 +11,8 @@
 Full demo video: [assets/iphoneclaw.mp4](assets/iphoneclaw.mp4)
 
 Official site: https://iphoneclaw.com
-iPhone镜像** window using a VLM (Vision Language Model) agent loop:
+
+macOS-only Python CLI worker that controls the **iPhone Mirroring / iPhone镜像** window using a VLM (Vision Language Model) agent loop:
 
 1. Capture window screenshot (Quartz CGWindowList)
 2. Call an OpenAI-compatible vision chat endpoint
@@ -22,6 +23,8 @@ iPhone镜像** window using a VLM (Vision Language Model) agent loop:
 It also exposes a **local Supervisor API** (text-only + SSE) so external agent frameworks can supervise the run:
 poll the latest conversation (tail N rounds), subscribe to live events, and intervene with `pause/resume/stop/inject`.
 This is designed to plug into orchestrators like **Claude Code** / **Codex** as a “boss agent” supervising a UI worker.
+
+It can also **improve over time**: supervisors can record “lessons learned” in `WORKER_DIARY.md`, and consult it before starting new tasks.
 
 ## Prerequisites
 
