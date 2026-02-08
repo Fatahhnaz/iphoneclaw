@@ -272,7 +272,7 @@ iphoneclaw ships with a [Claude Code skill](https://code.claude.com/docs/en/skil
 The skill uses `context: fork` to run in an isolated subagent — polling noise stays out of your main conversation.
 
 **Recommended supervisor models (for the boss agent, not the iPhone vision worker):**
-- Claude Code: prefer **Haiku** for fast, frequent polling and interventions.
+- Claude Code: prefer **sonnet4.5d** for fast, frequent polling and interventions.
 - Codex: prefer **gpt-5.3-codex-low** for cheap, fast supervision loops.
 
 **Setup:** The skill is auto-discovered from `.claude/skills/iphoneclaw/SKILL.md` when you open this project in Claude Code. For cross-project use, copy to your home directory:
