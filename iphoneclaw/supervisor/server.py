@@ -10,6 +10,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, Optional
 
 from iphoneclaw.config import Config
+from iphoneclaw.agent.recorder import RunRecorder
+from iphoneclaw.macos.capture import ScreenCapture
+from iphoneclaw.macos.window import WindowFinder
+from iphoneclaw.agent.executor import execute_action
+from iphoneclaw.parse.action_parser import parse_predictions
 from iphoneclaw.supervisor.hub import SupervisorHub
 from iphoneclaw.supervisor.state import WorkerControl
 
@@ -25,11 +30,13 @@ class SupervisorHTTPServer:
         hub: SupervisorHub,
         control: WorkerControl,
         conversation_store,
+        recorder: Optional[RunRecorder] = None,
     ) -> None:
         self.config = config
         self.hub = hub
         self.control = control
         self.conversation_store = conversation_store
+        self.recorder = recorder
         self._httpd: Optional[ThreadingHTTPServer] = None
         self._thread: Optional[threading.Thread] = None
 
@@ -85,6 +92,28 @@ class SupervisorHTTPServer:
                             "context": ctx,
                         },
                     )
+                    return
+
+                if path == "/v1/agent/run":
+                    rid = getattr(outer.recorder, "run_id", "") if outer.recorder else ""
+                    root = getattr(outer.recorder, "root", "") if outer.recorder else ""
+                    self._send_json(HTTPStatus.OK, {"ok": True, "run_id": rid, "root": root})
+                    return
+
+                if path == "/v1/agent/screenshot/latest":
+                    if not bool(getattr(outer.config, "enable_supervisor_images", False)):
+                        self._send_json(HTTPStatus.FORBIDDEN, {"error": "images disabled"})
+                        return
+                    if not outer.recorder:
+                        self._send_json(HTTPStatus.NOT_FOUND, {"error": "no recorder"})
+                        return
+                    step = outer.recorder.latest_step()
+                    if not step:
+                        self._send_json(HTTPStatus.NOT_FOUND, {"error": "no steps yet"})
+                        return
+                    d = outer.recorder.step_dir(step)
+                    jpg = d + "/screenshot.jpg"
+                    self._send_json(HTTPStatus.OK, {"ok": True, "step": step, "path": jpg})
                     return
 
                 if path == "/v1/agent/events":
@@ -213,6 +242,50 @@ class SupervisorHTTPServer:
                         {"ok": True, "status": outer.control.snapshot(), "removed": removed},
                     )
                     return
+
+                if path == "/v1/agent/exec":
+                    if not bool(getattr(outer.config, "enable_supervisor_exec", False)):
+                        self._send_json(HTTPStatus.FORBIDDEN, {"error": "exec disabled"})
+                        return
+                    snap = outer.control.snapshot()
+                    if not bool(snap.get("paused")):
+                        self._send_json(HTTPStatus.CONFLICT, {"error": "worker must be paused to exec"})
+                        return
+
+                    actions = body.get("actions")
+                    if isinstance(actions, str):
+                        actions = [actions]
+                    if not isinstance(actions, list) or not actions:
+                        self._send_json(HTTPStatus.BAD_REQUEST, {"error": "missing actions"})
+                        return
+                    # Parse using the same parser the worker uses.
+                    joined = "\n".join(str(x) for x in actions if str(x).strip())
+                    preds = parse_predictions("Action: " + joined)
+                    preds = [p for p in preds if p.action_type != "error_env"]
+                    if not preds:
+                        self._send_json(HTTPStatus.BAD_REQUEST, {"error": "unparseable actions"})
+                        return
+
+                    try:
+                        wf = WindowFinder(app_name=outer.config.target_app, window_contains=outer.config.window_contains)
+                        wf.find_window()
+                        cap = ScreenCapture(wf)
+                        shot = cap.capture()
+                        wf.activate_app()
+                        results = []
+                        for p in preds[:3]:
+                            res = execute_action(outer.config, p, shot)
+                            results.append(res)
+                        outer.hub.publish("supervisor_exec", {"count": len(results)})
+                        if outer.recorder:
+                            outer.recorder.log_event("supervisor_exec", {"actions": actions, "results": results})
+                        self._send_json(HTTPStatus.OK, {"ok": True, "results": results})
+                        return
+                    except Exception as e:
+                        if outer.recorder:
+                            outer.recorder.log_event("supervisor_exec_error", {"error": str(e)})
+                        self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
+                        return
 
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": "not found"})
 

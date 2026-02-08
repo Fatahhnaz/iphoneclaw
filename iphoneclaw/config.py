@@ -37,6 +37,12 @@ class Config:
     hang_on_finished: bool = True
     hang_on_call_user: bool = True
     enable_supervisor: bool = True
+    # Optional: allow supervisor API to expose image paths / run artifacts (local-only).
+    # Default off to keep the supervisor API "text-only" unless explicitly enabled.
+    enable_supervisor_images: bool = False
+    # Optional: allow supervisor API to execute actions directly (only when paused).
+    # Default off for safety.
+    enable_supervisor_exec: bool = False
 
     # Recording
     record_dir: str = "./runs"
@@ -91,6 +97,12 @@ def load_config_from_env() -> Config:
     c.target_app = os.getenv("IPHONECLAW_TARGET_APP", c.target_app)
     c.window_contains = os.getenv("IPHONECLAW_WINDOW_CONTAINS", c.window_contains)
     c.record_dir = os.getenv("IPHONECLAW_RECORD_DIR", c.record_dir)
+    c.enable_supervisor_images = os.getenv(
+        "IPHONECLAW_ENABLE_SUPERVISOR_IMAGES", "1" if c.enable_supervisor_images else "0"
+    ).strip().lower() in ("1", "true", "yes", "y", "on")
+    c.enable_supervisor_exec = os.getenv(
+        "IPHONECLAW_ENABLE_SUPERVISOR_EXEC", "1" if c.enable_supervisor_exec else "0"
+    ).strip().lower() in ("1", "true", "yes", "y", "on")
 
     # AppleScript runner mode for typing/hotkeys.
     c.applescript_mode = os.getenv("IPHONECLAW_APPLESCRIPT_MODE", c.applescript_mode)

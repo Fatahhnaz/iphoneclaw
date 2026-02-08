@@ -222,14 +222,17 @@ def cmd_run(args: argparse.Namespace) -> int:
     hub = SupervisorHub()
     control = WorkerControl()
     conv = ConversationStore()
+    # Create a recorder up-front so the supervisor server can expose run artifacts.
+    from iphoneclaw.agent.recorder import RunRecorder
+    recorder = RunRecorder(cfg)
 
     srv = None
     if cfg.enable_supervisor:
-        srv = SupervisorHTTPServer(cfg, hub, control, conv)
+        srv = SupervisorHTTPServer(cfg, hub, control, conv, recorder=recorder)
         srv.start()
         print("supervisor listening on %s" % _supervisor_base(cfg))
 
-    w = Worker(cfg, hub=hub, control=control, conversation=conv)
+    w = Worker(cfg, hub=hub, control=control, conversation=conv, recorder=recorder)
     try:
         w.run(args.instruction)
     finally:
@@ -300,6 +303,14 @@ def cmd_ctl(args: argparse.Namespace) -> int:
                 "resume": bool(args.resume),
             },
         )
+    elif args.action == "screenshot_latest":
+        result = req("GET", "/v1/agent/screenshot/latest")
+    elif args.action == "exec_actions":
+        # Supervisor-side "manual control" when the worker is paused.
+        acts = args.action_text or []
+        if isinstance(acts, str):
+            acts = [acts]
+        result = req("POST", "/v1/agent/exec", {"actions": list(acts)})
     elif args.action == "context":
         result = req("GET", "/v1/agent/context?tailRounds=%d" % int(args.tail))
     else:
@@ -541,6 +552,19 @@ def build_parser() -> argparse.ArgumentParser:
     sp_trim.add_argument("--resume", action="store_true", help="Resume after trimming.")
     sp_trim.set_defaults(action="trim_context")
     p_ctl.set_defaults(func=cmd_ctl)
+
+    sp_sh = p_ctl_sub.add_parser("screenshot-latest", help="Get latest screenshot path (requires images enabled).")
+    sp_sh.set_defaults(action="screenshot_latest")
+
+    sp_ex = p_ctl_sub.add_parser("exec", help="Execute actions directly (requires exec enabled, worker paused).")
+    sp_ex.add_argument(
+        "--action",
+        dest="action_text",
+        action="append",
+        default=[],
+        help="Action call string, e.g. click(start_box='(500,500)'); repeatable.",
+    )
+    sp_ex.set_defaults(action="exec_actions")
 
     p_diary = sub.add_parser("diary", help="Supervisor diary helpers (grep-friendly).")
     p_diary_sub = p_diary.add_subparsers(dest="action", required=True)

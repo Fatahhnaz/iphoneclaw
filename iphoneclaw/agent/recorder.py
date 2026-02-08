@@ -102,3 +102,18 @@ class RunRecorder:
             _json_dump(os.path.join(d, "exec.json"), exec_result)
 
         return d
+
+    def latest_step(self) -> Optional[int]:
+        try:
+            if not os.path.isdir(self.steps_dir):
+                return None
+            nums = []
+            for name in os.listdir(self.steps_dir):
+                if name.isdigit():
+                    nums.append(int(name))
+            return max(nums) if nums else None
+        except Exception:
+            return None
+
+    def step_dir(self, step: int) -> str:
+        return os.path.join(self.steps_dir, "%04d" % int(step))

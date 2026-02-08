@@ -191,7 +191,13 @@ python -m iphoneclaw ctl inject --text "Restated goal: ... Constraints: ... Next
 
 Normally you supervise **text-only**. However, if the worker is clearly stuck (dead loop, repeating the same wrong action 3+ times, or cannot make progress after multiple injections), you may read the **most recent screenshot** from `runs/` to guide a better injection. This is often faster than guessing from text alone.
 
-How to locate the latest screenshot file:
+Preferred: use the supervisor API to fetch the latest screenshot path (only works if the user enabled it via `IPHONECLAW_ENABLE_SUPERVISOR_IMAGES=1`):
+
+```bash
+python -m iphoneclaw ctl screenshot-latest
+```
+
+Fallback: locate the latest screenshot file in `runs/`:
 
 ```bash
 LATEST_RUN="$(ls -td runs/* 2>/dev/null | head -n 1)"
@@ -204,6 +210,20 @@ Then use the `Read` tool to open that `screenshot.jpg` and inspect it.
 Rules:
 - Only read **the latest 1 screenshot** when necessary.
 - Do NOT paste screenshots/base64 into your final answer; use it only to craft a better `ctl inject` guidance.
+
+### Last Resort: Supervisor Manual Control (Optional)
+
+If the worker cannot proceed, and you have a clear next interaction, you can manually execute actions via the supervisor API (only if the user enabled `IPHONECLAW_ENABLE_SUPERVISOR_EXEC=1`).
+
+Rules:
+- Only use when the worker is paused/hang.
+- Prefer 1-3 simple actions (click/double_click/scroll/type/sleep).
+- After manual control, inject an updated guidance and resume.
+
+Example (double click to show video controls):
+```bash
+python -m iphoneclaw ctl exec --action "double_click(start_box='<|box_start|>(500,500)<|box_end|>', interval_ms=50)"
+```
 
 ## Phase 3 — Report
 
