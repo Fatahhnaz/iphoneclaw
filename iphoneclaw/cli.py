@@ -264,6 +264,21 @@ def cmd_ctl(args: argparse.Namespace) -> int:
             with urllib.request.urlopen(r, timeout=30) as resp:
                 raw = resp.read().decode("utf-8")
                 return json.loads(raw)
+        except urllib.error.HTTPError as e:
+            try:
+                raw = e.read().decode("utf-8", errors="replace")
+            except Exception:
+                raw = ""
+            msg = (
+                f"Supervisor API returned HTTP {e.code} for {url} (cmd={args.action}).\n"
+                "This usually means the worker is running an older iphoneclaw that does not have this endpoint, "
+                "or you are pointing `ctl` at the wrong base URL.\n"
+                "Fix: stop the running worker and restart `python -m iphoneclaw run ...` after pulling latest.\n"
+                "If needed, override with `--base http://127.0.0.1:17334` and `--token ...`.\n"
+            )
+            if raw.strip():
+                msg += "Response body:\n" + raw.strip() + "\n"
+            raise RuntimeError(msg) from e
         except urllib.error.URLError as e:
             # Common: server not running (ConnectionRefusedError).
             raise RuntimeError(

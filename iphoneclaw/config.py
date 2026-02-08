@@ -39,10 +39,10 @@ class Config:
     enable_supervisor: bool = True
     # Optional: allow supervisor API to expose image paths / run artifacts (local-only).
     # Default off to keep the supervisor API "text-only" unless explicitly enabled.
-    enable_supervisor_images: bool = False
+    enable_supervisor_images: bool = True
     # Optional: allow supervisor API to execute actions directly (only when paused).
     # Default off for safety.
-    enable_supervisor_exec: bool = False
+    enable_supervisor_exec: bool = True
 
     # Recording
     record_dir: str = "./runs"
