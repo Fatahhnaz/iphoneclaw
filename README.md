@@ -260,7 +260,7 @@ export IPHONECLAW_APPLESCRIPT_MODE=osascript # fallback via /usr/bin/osascript
 | `IPHONECLAW_TYPE_ASCII_ONLY` | Reject non-ASCII `type(content=...)` (use pinyin + IME for Chinese) (1/0) | `1` |
 | `IPHONECLAW_SCROLL_INVERT_Y` | Invert vertical wheel scroll direction (1/0) | `0` |
 | `IPHONECLAW_SCROLL_FOCUS_CLICK` | Click to focus before wheel scroll (risk: opens items under cursor) (1/0) | `0` |
-| `IPHONECLAW_AUTOMATION_ENABLE` | Enable L0 in-run memoization (replay cached actions for repeated screens) (1/0) | `1` |
+| `IPHONECLAW_AUTOMATION_ENABLE` | Enable L0 in-run memoization (replay cached actions for repeated screens) (1/0) | `0` |
 | `IPHONECLAW_AUTOMATION_L0_ENABLE` | Enable L0 cache (effective only when automation is enabled) (1/0) | `1` |
 | `IPHONECLAW_AUTOMATION_HASH_THRESHOLD` | Max hamming distance for dHash near-match (0 = exact only) | `5` |
 | `IPHONECLAW_AUTOMATION_MAX_REUSE` | Max times a single cache entry can be replayed | `3` |
@@ -322,7 +322,7 @@ iphoneclaw includes an **L0 memoization layer** that caches screen fingerprints 
 - **Per-entry reuse limit** (default 3) prevents infinite loops
 - **Status bar masking** — top 8% of the screenshot is cropped before hashing to ignore clock/battery changes
 
-Enable via `IPHONECLAW_AUTOMATION_ENABLE=1` (default on). CLI output:
+Enable via `IPHONECLAW_AUTOMATION_ENABLE=1` (default off). CLI output:
 
 ```
 [iphoneclaw] L0 cache HIT step=5 hit#1 action=scroll(direction='down')

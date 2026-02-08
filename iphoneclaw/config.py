@@ -87,7 +87,7 @@ class Config:
 
     # Automation: L0 in-run memoization (deterministic action replay for repeated screens).
     # Default OFF until validated; enable via IPHONECLAW_AUTOMATION_ENABLE=1.
-    automation_enable: bool = True
+    automation_enable: bool = False
     automation_l0_enable: bool = True  # effective only when automation_enable=True
     automation_hash_threshold: int = 5  # max hamming distance for dHash near-match
     automation_max_reuse: int = 3  # max times a single cache entry can be replayed

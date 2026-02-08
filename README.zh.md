@@ -206,7 +206,7 @@ export IPHONECLAW_APPLESCRIPT_MODE=osascript # 通过 /usr/bin/osascript fallbac
 | `IPHONECLAW_TYPE_ASCII_ONLY` | 禁止在 `type(content=...)` 里输出中文（用拼音 + 输入法候选）(1/0) | `1` |
 | `IPHONECLAW_SCROLL_INVERT_Y` | 反转竖向滚轮方向（1/0） | `0` |
 | `IPHONECLAW_SCROLL_FOCUS_CLICK` | 滚动前点击聚焦（风险：可能点进视频/条目）(1/0) | `0` |
-| `IPHONECLAW_AUTOMATION_ENABLE` | 启用 L0 运行内记忆缓存（对重复屏幕重放缓存动作）(1/0) | `1` |
+| `IPHONECLAW_AUTOMATION_ENABLE` | 启用 L0 运行内记忆缓存（对重复屏幕重放缓存动作）(1/0) | `0` |
 | `IPHONECLAW_AUTOMATION_L0_ENABLE` | 启用 L0 缓存（仅在 automation 开启时生效）(1/0) | `1` |
 | `IPHONECLAW_AUTOMATION_HASH_THRESHOLD` | dHash 近似匹配最大汉明距离（0 = 仅精确匹配） | `5` |
 | `IPHONECLAW_AUTOMATION_MAX_REUSE` | 单条缓存最多重放次数 | `3` |
@@ -266,7 +266,7 @@ iphoneclaw 内置 **L0 记忆缓存层**，在单次运行中缓存截图指纹�
 - **单条重放上限**（默认 3 次）防止无限循环
 - **状态栏遮罩** — 哈希前裁掉顶部 8% 区域，忽略时间/电量变化
 
-默认开启（`IPHONECLAW_AUTOMATION_ENABLE=1`）。CLI 输出示例：
+默认关闭，启用方式：`IPHONECLAW_AUTOMATION_ENABLE=1`。CLI 输出示例：
 
 ```
 [iphoneclaw] L0 cache HIT step=5 hit#1 action=scroll(direction='down')
