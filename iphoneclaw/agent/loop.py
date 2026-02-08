@@ -18,6 +18,7 @@ from iphoneclaw.model.prompt_v15 import system_prompt_v15
 from iphoneclaw.parse.action_parser import parse_predictions
 from iphoneclaw.supervisor.hub import SupervisorHub
 from iphoneclaw.supervisor.state import WorkerControl
+from iphoneclaw.automation.router import L0Router
 from iphoneclaw.types import StatusEnum
 
 
@@ -47,6 +48,14 @@ class Worker:
             "doubao" in cfg.model_name.lower()
         )
         self._sent_type_ascii_guidance = False
+
+        # L0 automation: in-run memoization
+        self._l0: Optional[L0Router] = None
+        if cfg.automation_enable and cfg.automation_l0_enable:
+            self._l0 = L0Router(
+                hash_threshold=cfg.automation_hash_threshold,
+                max_reuse=cfg.automation_max_reuse,
+            )
 
     def _publish_conv(self, role: str, text: str) -> None:
         self.hub.publish("conversation", {"role": role, "text": text})
@@ -169,6 +178,134 @@ class Worker:
 
                 shot = self.cap.capture()
                 self.recorder.write_step(step, screenshot=shot)
+
+                # ---- L0 automation: in-run memoization ----
+                pre_fp: Optional[int] = None
+                if self._l0 is not None:
+                    pre_fp = self._l0.fingerprint(shot.base64)
+                    l0_entry = self._l0.try_cache(pre_fp, step)
+                    if l0_entry is not None:
+                        self.recorder.log_event("automation_hit", {
+                            "step": step,
+                            "fingerprint": pre_fp,
+                            "cached_fingerprint": l0_entry.fingerprint,
+                            "hit_count": l0_entry.hit_count,
+                        })
+
+                        cached_action_strs = [p.raw_action for p in l0_entry.actions]
+                        if self.cfg.automation_verbose:
+                            print(
+                                f"[iphoneclaw] L0 cache HIT step={step} "
+                                f"hit#{l0_entry.hit_count + 1} "
+                                f"action={'; '.join(cached_action_strs)}",
+                                file=sys.stderr, flush=True,
+                            )
+                        synthetic_text = (
+                            "[L0-cache] reusing cached action (hit #%d)\n"
+                            "Thought: Screen matches cached fingerprint. "
+                            "Replaying known-good action.\n"
+                            "Action: %s"
+                        ) % (l0_entry.hit_count + 1, "; ".join(cached_action_strs))
+                        self.recorder.write_step(step, raw_model_text=synthetic_text)
+
+                        l0_actions_payload: List[Dict[str, Any]] = []
+                        for p in l0_entry.actions:
+                            l0_actions_payload.append({
+                                "action_type": p.action_type,
+                                "raw_action": p.raw_action,
+                                "thought": p.thought,
+                                "inputs": p.action_inputs.__dict__,
+                                "source": "l0_cache",
+                            })
+                        self.recorder.write_step(
+                            step, action={"actions": l0_actions_payload, "source": "l0_cache"},
+                        )
+
+                        l0_exec_ok = True
+                        l0_exec_results: List[Dict[str, Any]] = []
+                        for pred in l0_entry.actions:
+                            if pred.action_type in ("finished", "call_user", "error_env"):
+                                l0_exec_ok = False
+                                break
+                            self.wf.activate_app()
+                            res = execute_action(self.cfg, pred, shot)
+                            self.recorder.log_event("exec", res)
+                            l0_exec_results.append(res)
+
+                            sig = f"{pred.action_type}|{(pred.raw_action or '').strip()}"
+                            recent_sigs.append(sig)
+                            if sig == last_sig:
+                                repeat_streak += 1
+                            else:
+                                repeat_streak = 1
+                                last_sig = sig
+
+                            if not res.get("ok"):
+                                l0_exec_ok = False
+                                break
+
+                        if l0_exec_ok:
+                            time.sleep(float(self.cfg.loop_interval_ms) / 1000.0)
+                            try:
+                                verify_shot = self.cap.capture()
+                                post_fp = self._l0.fingerprint(verify_shot.base64)
+                            except Exception:
+                                post_fp = None
+                            verified = self._l0.verify_and_commit(
+                                l0_entry, post_fp, step, success=True,
+                            )
+                        else:
+                            self._l0.verify_and_commit(
+                                l0_entry, None, step, success=False,
+                            )
+                            verified = False
+
+                        if l0_exec_results:
+                            if len(l0_exec_results) == 1:
+                                self.recorder.write_step(
+                                    step, exec_result=l0_exec_results[0],
+                                )
+                            else:
+                                self.recorder.write_step(
+                                    step,
+                                    exec_result={"exec_results": l0_exec_results},
+                                )
+
+                        if verified:
+                            self.recorder.log_event(
+                                "automation_verify_ok", {"step": step},
+                            )
+                            if self.cfg.automation_verbose:
+                                print(
+                                    f"[iphoneclaw] L0 verify OK step={step} "
+                                    f"(VLM call skipped)",
+                                    file=sys.stderr, flush=True,
+                                )
+                            self.control.set_status(StatusEnum.RUNNING)
+                            self.hub.set_status(
+                                self.control.snapshot()["status"], step=step,
+                            )
+                            continue
+
+                        self.recorder.log_event("automation_verify_fail", {
+                            "step": step, "exec_ok": l0_exec_ok,
+                        })
+                        if self.cfg.automation_verbose:
+                            print(
+                                f"[iphoneclaw] L0 verify FAIL step={step} "
+                                f"exec_ok={l0_exec_ok}, falling back to VLM",
+                                file=sys.stderr, flush=True,
+                            )
+                        try:
+                            shot = self.cap.capture()
+                            self.recorder.write_step(step, screenshot=shot)
+                        except Exception:
+                            pass
+                    else:
+                        self.recorder.log_event("automation_miss", {
+                            "step": step, "fingerprint": pre_fp,
+                        })
+                # ---- End L0 automation ----
 
                 # Resize image to match pixel budget before sending to model.
                 send_b64 = shot.base64
@@ -344,6 +481,17 @@ class Worker:
                         self.recorder.write_step(step, exec_result=exec_results[0])
                     else:
                         self.recorder.write_step(step, exec_result={"exec_results": exec_results})
+
+                # Store in L0 cache after successful VLM execution.
+                if self._l0 is not None and pre_fp is not None and exec_results:
+                    all_ok = all(r.get("ok") for r in exec_results)
+                    if all_ok and self._l0.should_cache_actions(non_err):
+                        try:
+                            post_shot = self.cap.capture()
+                            post_fp = self._l0.fingerprint(post_shot.base64)
+                            self._l0.record(pre_fp, list(non_err), post_fp, step)
+                        except Exception:
+                            pass
 
                 # Update status each loop
                 self.control.set_status(StatusEnum.RUNNING)

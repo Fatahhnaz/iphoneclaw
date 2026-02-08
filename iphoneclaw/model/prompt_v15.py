@@ -37,7 +37,11 @@ def system_prompt_v15(language: str = "en") -> str:
         "  Avoid using left-to-right swipe/drag as a 'back' gesture unless explicitly needed.\n"
         "- iPhone Home/App Library scrolling: perform scroll/swipe near the bottom (just above the tab bar / dock),\n"
         "  not in the middle of the screen.\n"
-        "- Vertical scrolling: DO NOT use `drag(...)` to scroll up/down. Use `scroll(direction='up'|'down', ...)`.\n"
-        "- Scroll uses a mouse wheel event. Do NOT click to focus before scrolling (click may open items).\n"
+        "- Gesture actions:\n"
+        "  - `scroll(direction=...)`: incremental content scrolling (small movement, like reading a feed).\n"
+        "  - `swipe(direction=...)`: fast page-level gesture (switching pages, back navigation, dismissing).\n"
+        "  - `drag(start_box=..., end_box=...)`: ONLY for precise element dragging (sliders, reordering). "
+        "Do NOT use drag for scrolling or navigation.\n"
+        "- Do NOT click to focus before scrolling/swiping (click may open items).\n"
         f"- Respond in language: {language}\n"
     )

@@ -85,6 +85,14 @@ class Config:
     # and then select IME candidates via clicks.
     type_ascii_only: bool = True
 
+    # Automation: L0 in-run memoization (deterministic action replay for repeated screens).
+    # Default OFF until validated; enable via IPHONECLAW_AUTOMATION_ENABLE=1.
+    automation_enable: bool = True
+    automation_l0_enable: bool = True  # effective only when automation_enable=True
+    automation_hash_threshold: int = 5  # max hamming distance for dHash near-match
+    automation_max_reuse: int = 3  # max times a single cache entry can be replayed
+    automation_verbose: bool = True  # print L0 hit/miss/verify to stderr
+
 
 def load_config_from_env() -> Config:
     """Lightweight env override to avoid hard dependency on pydantic."""
@@ -135,5 +143,20 @@ def load_config_from_env() -> Config:
     )
     c.type_ascii_only = os.getenv(
         "IPHONECLAW_TYPE_ASCII_ONLY", "1" if c.type_ascii_only else "0"
+    ).strip().lower() in ("1", "true", "yes", "y", "on")
+    c.automation_enable = os.getenv(
+        "IPHONECLAW_AUTOMATION_ENABLE", "1" if c.automation_enable else "0"
+    ).strip().lower() in ("1", "true", "yes", "y", "on")
+    c.automation_l0_enable = os.getenv(
+        "IPHONECLAW_AUTOMATION_L0_ENABLE", "1" if c.automation_l0_enable else "0"
+    ).strip().lower() in ("1", "true", "yes", "y", "on")
+    c.automation_hash_threshold = int(
+        os.getenv("IPHONECLAW_AUTOMATION_HASH_THRESHOLD", str(c.automation_hash_threshold))
+    )
+    c.automation_max_reuse = int(
+        os.getenv("IPHONECLAW_AUTOMATION_MAX_REUSE", str(c.automation_max_reuse))
+    )
+    c.automation_verbose = os.getenv(
+        "IPHONECLAW_AUTOMATION_VERBOSE", "1" if c.automation_verbose else "0"
     ).strip().lower() in ("1", "true", "yes", "y", "on")
     return c

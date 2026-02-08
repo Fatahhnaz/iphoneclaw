@@ -18,6 +18,7 @@ ACTION_SPACES_V1_5 = [
     "hotkey(key='ctrl c') # Split keys with a space and use lowercase. Also, do not use more than 3 keys in one hotkey action.",
     r"type(content='xxx') # Use escape characters \', \", and \n in content part to ensure we can parse the content in normal python string format. If you want to submit your input, use \n at the end of content.",
     "scroll(start_box='<|box_start|>(x1,y1)<|box_end|>', direction='down or up or right or left') # Show more information on the `direction` side.",
+    "swipe(start_box='<|box_start|>(x1,y1)<|box_end|>', direction='down or up or right or left') # Fast swipe gesture for page navigation, back gesture, switching tabs etc.",
     "sleep(ms=50) # Fine-grained delay for multi-action sequences (or sleep(seconds=0.05)).",
     "wait() # Sleep for 5s and take a screenshot to check for any changes.",
     "finished()",

@@ -191,6 +191,28 @@ def execute_action(
                     invert_y=bool(getattr(cfg, "scroll_invert_y", False)),
                 )
 
+        elif action_type == "swipe":
+            # Swipe = rapid burst of scroll-wheel events (simulates trackpad two-finger swipe).
+            # Larger amount + more repeats than normal scroll for a page-level gesture.
+            xy = _box_to_xy(ai.start_box, bounds, factor)
+            if not xy:
+                xy = (bounds.x + bounds.width / 2.0, bounds.y + bounds.height / 2.0)
+            direction = (ai.direction or "").lower().strip()
+            if direction not in ("up", "down", "left", "right"):
+                raise ValueError("missing/invalid direction for swipe")
+            xy = _clamp_xy(xy[0], xy[1], bounds)
+            expected_cursor = (xy[0], xy[1])
+            swipe_amount = 2000 if direction in ("up", "down") else 400
+            input_mouse.mouse_scroll(
+                xy[0], xy[1],
+                direction=direction,
+                amount=swipe_amount,
+                unit="pixel",
+                repeat=15,
+                focus_click=False,
+                invert_y=bool(getattr(cfg, "scroll_invert_y", False)),
+            )
+
         elif action_type == "hotkey":
             # Expect "ctrl c" or "cmd shift p" style.
             key = (ai.key or "").strip().lower()
