@@ -79,7 +79,7 @@ class Config:
     # Safety: detect repeated identical actions (often a dead-loop) and auto-pause
     # to request supervisor intervention via SSE (`needs_supervisor`).
     auto_pause_on_repeat_action: bool = False
-    repeat_action_streak_threshold: int = 4
+    repeat_action_streak_threshold: int = 10
 
     # Input constraint: disallow non-ASCII typing. For Chinese, type pinyin (ASCII)
     # and then select IME candidates via clicks.
