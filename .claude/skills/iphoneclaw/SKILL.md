@@ -60,6 +60,14 @@ When the worker needs to scroll on the iPhone Home Screen / App Library:
 - DO NOT use `drag(...)` for vertical scrolling. Use `scroll(direction='up'|'down', ...)`.
 - `scroll(...)` should be wheel-only (move cursor + wheel). Avoid "click to focus" before scrolling, since it may open a video/item under the cursor.
 
+## Back Navigation (important)
+
+iPhone "back" in many apps is more reliable via tapping the UI back button than performing a swipe gesture in iPhone Mirroring.
+
+Rules:
+- Prefer tapping the **top-left** back button `<` (just under the status bar) when it exists.
+- Avoid using left-to-right swipe/`drag(...)` as a "back" gesture unless you have no UI back button.
+
 ## Timing-Sensitive UIs (double-click / multi-action)
 
 Some apps (e.g. Bilibili/YouTube video player) hide controls quickly. If the worker is too slow, the pause/play overlay can disappear before the second tap.
