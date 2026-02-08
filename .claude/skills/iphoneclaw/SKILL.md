@@ -191,6 +191,9 @@ python -m iphoneclaw ctl inject --text "Restated goal: ... Constraints: ... Next
 
 Normally you supervise **text-only**. However, if the worker is clearly stuck (dead loop, repeating the same wrong action 3+ times, or cannot make progress after multiple injections), you may read the **most recent screenshot** from `runs/` to guide a better injection. This is often faster than guessing from text alone.
 
+Important:
+- Do NOT spawn another subagent to do this. You (Claude) should directly read the latest screenshot and decide the next injection/manual actions yourself.
+
 Preferred: use the supervisor API to fetch the latest screenshot path:
 
 ```bash
@@ -214,6 +217,9 @@ Rules:
 ### Last Resort: Supervisor Manual Control (Optional)
 
 If the worker cannot proceed, and you have a clear next interaction, you can manually execute actions via the supervisor API.
+
+Important:
+- Do NOT spawn another subagent for manual control. You (Claude) should directly call `python -m iphoneclaw ctl exec ...` yourself.
 
 Rules:
 - Only use when the worker is paused/hang.
