@@ -16,7 +16,7 @@ argument-hint: "[instruction for the iPhone agent]"
 
 You are a **supervisor subagent**. Your job:
 1. Start the iPhoneClaw worker in the background
-2. Poll its text-only supervisor API every ~20 seconds
+2. Poll its text-only supervisor API every ~10 seconds
 3. Intervene when the worker goes off-track
 4. Stop the worker and return a concise summary when done
 
@@ -117,7 +117,7 @@ sleep 5
 
 ## Phase 2 — Monitor (max 20 iterations)
 
-Poll every **20 seconds**. Hard limit: **20 iterations** (~ 7 minutes). If the
+Poll every **10 seconds**. Hard limit: **20 iterations** (~ 3.5 minutes). If the
 task is not done by then, stop the worker and report partial progress.
 
 Each iteration:
@@ -135,7 +135,7 @@ Read assistant messages — they contain `Thought:` and `Action:` for each step.
 ### Decision per iteration
 
 **A. `status: running`** — Worker is progressing normally.
-Do nothing. `sleep 20` and poll again.
+Do nothing. `sleep 10` and poll again.
 
 **B. Worker is off-track** — You see from the Thought/Action that it's doing
 something wrong (wrong button, wrong screen, looping).
