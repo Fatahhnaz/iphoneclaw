@@ -28,7 +28,7 @@ def _auto_crop_white_border_px_cv2(
     edge_white_frac_threshold: float = 0.985,
     white_min: int = 242,
     white_max_delta: int = 20,
-    margin_px: int = 6,
+    margin_px: int = 0,
 ) -> Optional[Tuple[int, int, int, int]]:
     """
     Use OpenCV/numpy to trim pure/near-white borders by scanning from each edge until
@@ -156,6 +156,52 @@ def _auto_crop_white_border_px_cv2(
     x1 = min(w - 1, int(x1) + margin_px)
     y1 = min(h - 1, int(y1) + margin_px)
 
+    # After adding safety margin, shave back purely-white outer rows/cols (at most
+    # margin_px). This keeps robustness while avoiding visible white frame.
+    strict_min = 250
+    strict_delta = 6
+    strict_frac = 0.999
+
+    def _white_frac_row(y: int) -> float:
+        row = img[y, x0 : x1 + 1, :]
+        if row.size <= 0:
+            return 0.0
+        mx = row.max(axis=1)
+        mn = row.min(axis=1)
+        m = (mx >= strict_min) & (mn >= strict_min) & ((mx - mn) <= strict_delta)
+        return float(m.mean()) if m.size > 0 else 0.0
+
+    def _white_frac_col(x: int) -> float:
+        col = img[y0 : y1 + 1, x, :]
+        if col.size <= 0:
+            return 0.0
+        mx = col.max(axis=1)
+        mn = col.min(axis=1)
+        m = (mx >= strict_min) & (mn >= strict_min) & ((mx - mn) <= strict_delta)
+        return float(m.mean()) if m.size > 0 else 0.0
+
+    max_shave = max(0, int(margin_px))
+    for _ in range(max_shave):
+        if y0 < y1 and _white_frac_row(y0) >= strict_frac:
+            y0 += 1
+        else:
+            break
+    for _ in range(max_shave):
+        if y1 > y0 and _white_frac_row(y1) >= strict_frac:
+            y1 -= 1
+        else:
+            break
+    for _ in range(max_shave):
+        if x0 < x1 and _white_frac_col(x0) >= strict_frac:
+            x0 += 1
+        else:
+            break
+    for _ in range(max_shave):
+        if x1 > x0 and _white_frac_col(x1) >= strict_frac:
+            x1 -= 1
+        else:
+            break
+
     cw = max(1, (x1 - x0) + 1)
     ch = max(1, (y1 - y0) + 1)
 
@@ -170,7 +216,7 @@ def _auto_crop_white_border_px(
     image: "Quartz.CGImageRef",
     *,
     white_threshold: int = 242,
-    margin_px: int = 6,
+    margin_px: int = 0,
 ) -> Optional[Tuple[int, int, int, int]]:
     """
     Best-effort crop: find bounding box of pixels that are not near-white.
