@@ -117,6 +117,54 @@ class SupervisorHTTPServer:
                     self._send_json(HTTPStatus.OK, {"ok": True, "step": step, "path": jpg})
                     return
 
+                if path == "/v1/agent/ocr":
+                    try:
+                        min_confidence = float((qs.get("minConfidence") or ["0"])[0])
+                    except Exception:
+                        self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid minConfidence"})
+                        return
+                    try:
+                        max_items = int((qs.get("maxItems") or ["0"])[0])
+                    except Exception:
+                        self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid maxItems"})
+                        return
+                    if min_confidence < 0.0:
+                        min_confidence = 0.0
+                    if min_confidence > 1.0:
+                        min_confidence = 1.0
+                    if max_items < 0:
+                        max_items = 0
+
+                    try:
+                        from iphoneclaw.macos.ocr_vision import recognize_screenshot_text
+
+                        wf = WindowFinder(app_name=outer.config.target_app, window_contains=outer.config.window_contains)
+                        wf.find_window()
+                        cap = ScreenCapture(wf)
+                        shot = cap.capture()
+                        payload = recognize_screenshot_text(
+                            shot,
+                            coord_factor=int(getattr(outer.config, "coord_factor", 1000)),
+                            min_confidence=float(min_confidence),
+                            max_items=(int(max_items) if max_items > 0 else None),
+                        )
+                        outer.hub.publish(
+                            "supervisor_ocr",
+                            {"count": int(payload.get("count") or 0), "min_confidence": min_confidence},
+                        )
+                        if outer.recorder:
+                            outer.recorder.log_event(
+                                "supervisor_ocr",
+                                {"count": int(payload.get("count") or 0), "min_confidence": min_confidence},
+                            )
+                        self._send_json(HTTPStatus.OK, {"ok": True, **payload})
+                        return
+                    except Exception as e:
+                        if outer.recorder:
+                            outer.recorder.log_event("supervisor_ocr_error", {"error": str(e)})
+                        self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
+                        return
+
                 if path == "/v1/agent/events":
                     # SSE: keep the connection open and stream events.
                     self.send_response(HTTPStatus.OK)

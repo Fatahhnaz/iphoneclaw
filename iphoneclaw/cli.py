@@ -132,6 +132,52 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ocr(args: argparse.Namespace) -> int:
+    """Run Apple Vision OCR directly on the current target window screenshot."""
+    import json
+
+    wf = WindowFinder(app_name=args.app, window_contains=args.window_contains)
+    wf.find_window()
+
+    # Match script-run behavior: ensure target app is frontmost before capture.
+    if _is_target_frontmost(args.app):
+        print("target app already frontmost: %r" % args.app)
+    else:
+        for _ in range(4):
+            wf.activate_app()
+            time.sleep(0.25)
+            if _is_target_frontmost(args.app):
+                break
+        if _is_target_frontmost(args.app):
+            print("activated target app to frontmost: %r" % args.app)
+        else:
+            print(
+                "warning: failed to bring target app %r to front. frontmost now=%r"
+                % (args.app, _frontmost_app_name())
+            )
+
+    # Refresh once after optional activation to avoid stale bounds.
+    wf.refresh()
+    cap = ScreenCapture(wf)
+    shot = cap.capture()
+
+    try:
+        from iphoneclaw.macos.ocr_vision import recognize_screenshot_text
+
+        payload = recognize_screenshot_text(
+            shot,
+            coord_factor=int(args.coord_factor),
+            min_confidence=float(args.min_confidence),
+            max_items=(int(args.max_items) if int(args.max_items) > 0 else None),
+        )
+    except Exception as e:
+        print("ocr error: %s" % str(e))
+        return 2
+
+    print(json.dumps({"ok": True, **payload}, ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_windows(args: argparse.Namespace) -> int:
     wins = list_on_screen_windows()
     needle = (args.contains or "").lower().strip()
@@ -286,11 +332,18 @@ def cmd_ctl(args: argparse.Namespace) -> int:
             raise RuntimeError(msg) from e
         except urllib.error.URLError as e:
             # Common: server not running (ConnectionRefusedError).
+            tip = ""
+            if str(args.action) == "ocr":
+                tip = (
+                    "\nTip: you can test OCR locally without supervisor:\n"
+                    "  python -m iphoneclaw ocr --app \"iPhone Mirroring\" --min-confidence 0.2"
+                )
             raise RuntimeError(
                 "Failed to reach supervisor API at %s (cmd=%s). "
                 "Is `python -m iphoneclaw run ...` currently running, and is the host/port correct? "
                 "You can override with `--base http://127.0.0.1:17334` and `--token ...`."
-                % (base, args.action)
+                "%s"
+                % (base, args.action, tip)
             ) from e
 
     if args.action == "pause":
@@ -325,6 +378,16 @@ def cmd_ctl(args: argparse.Namespace) -> int:
         )
     elif args.action == "screenshot_latest":
         result = req("GET", "/v1/agent/screenshot/latest")
+    elif args.action == "ocr":
+        q = []
+        if args.min_confidence is not None:
+            q.append("minConfidence=%s" % float(args.min_confidence))
+        if args.max_items is not None and int(args.max_items) > 0:
+            q.append("maxItems=%d" % int(args.max_items))
+        path = "/v1/agent/ocr"
+        if q:
+            path += "?" + "&".join(q)
+        result = req("GET", path)
     elif args.action == "exec_actions":
         # Supervisor-side "manual control" when the worker is paused.
         acts = args.action_text or []
@@ -725,6 +788,28 @@ def build_parser() -> argparse.ArgumentParser:
     p_cal.add_argument("--out-dir", default=None, help="Output directory (default: current directory).")
     p_cal.set_defaults(func=cmd_calibrate)
 
+    p_ocr = sub.add_parser("ocr", help="Run Apple Vision OCR on current target window.")
+    _add_common_args(p_ocr)
+    p_ocr.add_argument(
+        "--min-confidence",
+        default=0.0,
+        type=float,
+        help="Keep text items with confidence >= value (0..1).",
+    )
+    p_ocr.add_argument(
+        "--max-items",
+        default=0,
+        type=int,
+        help="Limit returned OCR items (0 means no limit).",
+    )
+    p_ocr.add_argument(
+        "--coord-factor",
+        default=Config().coord_factor,
+        type=int,
+        help="Model coordinate factor for model_box output (default from config; usually 1000).",
+    )
+    p_ocr.set_defaults(func=cmd_ocr)
+
     p_win = sub.add_parser("windows", help="Debug: list visible windows from CGWindowList.")
     p_win.add_argument("--contains", default="", help="Case-insensitive substring filter across owner/title.")
     p_win.add_argument("--limit", default=30, type=int, help="Max rows to print.")
@@ -828,6 +913,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp_sh = p_ctl_sub.add_parser("screenshot-latest", help="Get latest screenshot path (requires images enabled).")
     sp_sh.set_defaults(action="screenshot_latest")
+
+    sp_ocr = p_ctl_sub.add_parser("ocr", help="Run Apple Vision OCR on current screen via supervisor API.")
+    sp_ocr.add_argument("--min-confidence", default=0.0, type=float, help="Keep text items with confidence >= value (0..1).")
+    sp_ocr.add_argument("--max-items", default=0, type=int, help="Limit returned OCR items (0 means no limit).")
+    sp_ocr.set_defaults(action="ocr")
 
     sp_ex = p_ctl_sub.add_parser("exec", help="Execute actions directly (requires exec enabled, worker paused).")
     sp_ex.add_argument(

@@ -205,6 +205,7 @@ iphoneclaw launch          启动目标 App 并输出窗口 bounds
 iphoneclaw bounds          输出窗口 bounds (x y w h)
 iphoneclaw screenshot      截图（窗口 -> JPEG）
 iphoneclaw calibrate       截图 + 坐标映射信息
+iphoneclaw ocr             对当前画面执行 Apple Vision OCR
 iphoneclaw windows         枚举可见窗口（调试用）
 iphoneclaw run             运行 agent loop + supervisor API
 iphoneclaw serve           只启动 supervisor API（不跑 worker）
@@ -226,6 +227,12 @@ iphoneclaw 支持 **本地动作脚本** 来减少 token 消耗，并把常见�
 
 ```bash
 python -m iphoneclaw script run --file action_scripts/common/open_app_spotlight.txt --var APP=bilibili
+```
+
+### 本地 OCR（不需要 Supervisor）
+
+```bash
+python -m iphoneclaw ocr --app "iPhone Mirroring" --min-confidence 0.2
 ```
 
 ### 录制或导出脚本
@@ -302,9 +309,15 @@ python -m iphoneclaw ctl inject --text "只打开 Wi-Fi，不要修改其他设�
 
 # worker paused 时，远程触发执行已注册的动作脚本
 python -m iphoneclaw ctl run-script --name open_app_spotlight --var APP=bilibili
+
+# 用 Apple Vision 做当前 iPhone 画面 OCR（文本 + 文本框）
+python -m iphoneclaw ctl ocr --min-confidence 0.2
 ```
 
 SSE 事件流: `GET /v1/agent/events`
+
+OCR API: `GET /v1/agent/ocr`  
+可选 query 参数：`minConfidence`（0..1）、`maxItems`（>0）
 
 ## macOS 打字（AppleScript）
 

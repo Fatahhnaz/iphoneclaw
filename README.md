@@ -259,6 +259,7 @@ iphoneclaw launch          Launch target app, print window bounds
 iphoneclaw bounds          Print window bounds (x y w h)
 iphoneclaw screenshot      Capture target window to JPEG
 iphoneclaw calibrate       Screenshot + coordinate mapping info
+iphoneclaw ocr             Run Apple Vision OCR on current screen
 iphoneclaw windows         List visible windows (debug)
 iphoneclaw run             Run the agent loop + supervisor API
 iphoneclaw serve           Start supervisor API only (no worker)
@@ -280,6 +281,12 @@ iphoneclaw supports **local action scripts** to reduce tokens and make common fl
 
 ```bash
 python -m iphoneclaw script run --file action_scripts/common/open_app_spotlight.txt --var APP=bilibili
+```
+
+### Run OCR Locally (No Supervisor Needed)
+
+```bash
+python -m iphoneclaw ocr --app "iPhone Mirroring" --min-confidence 0.2
 ```
 
 ### Record Or Export A Script
@@ -356,9 +363,15 @@ python -m iphoneclaw ctl inject --text "Only toggle Wi-Fi; do not change other s
 
 # Run a registered action script while the worker is paused
 python -m iphoneclaw ctl run-script --name open_app_spotlight --var APP=bilibili
+
+# OCR current iPhone screen with Apple Vision (text + boxes)
+python -m iphoneclaw ctl ocr --min-confidence 0.2
 ```
 
 SSE event stream: `GET /v1/agent/events`
+
+OCR API: `GET /v1/agent/ocr`  
+Optional query params: `minConfidence` (0..1), `maxItems` (>0)
 
 ## Typing on macOS (AppleScript)
 
